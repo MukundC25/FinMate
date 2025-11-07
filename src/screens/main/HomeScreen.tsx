@@ -1,0 +1,344 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { TransactionRow } from '../../components/common/TransactionRow';
+import { Colors, Typography, Spacing } from '../../constants/theme';
+import { useStore } from '../../store/useStore';
+import { formatCurrency, getCurrentMonthRange } from '../../utils/helpers';
+import { TransactionDB } from '../../services/database';
+
+export function HomeScreen({ navigation }: any) {
+  const { transactions, setTransactions } = useStore();
+  const [totalSpent, setTotalSpent] = useState(0);
+  const [totalReceived, setTotalReceived] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const monthlyBudget = 16000;
+
+  // Reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
+
+  const loadData = async () => {
+    try {
+      console.log('📊 Loading home screen data...');
+      const allTransactions = await TransactionDB.getAll();
+      console.log(`✅ Loaded ${allTransactions.length} transactions`);
+      setTransactions(allTransactions);
+
+      const { start, end } = getCurrentMonthRange();
+      const spent = await TransactionDB.getTotalSpent(start, end);
+      setTotalSpent(spent);
+
+      // Calculate total received
+      const received = allTransactions
+        .filter(t => t.type === 'received')
+        .reduce((sum, t) => sum + t.amount, 0);
+      setTotalReceived(received);
+      
+      setLoading(false);
+      setRefreshing(false);
+    } catch (error) {
+      console.error('❌ Error loading data:', error);
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  const budgetLeft = monthlyBudget - totalSpent;
+  const budgetProgress = (totalSpent / monthlyBudget) * 100;
+  const recentTransactions = transactions.slice(0, 5);
+
+  return (
+    <ScrollView 
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
+      }
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.greeting}>Good evening! 👋</Text>
+        <Text style={styles.subtitle}>Here's your spending summary</Text>
+      </View>
+
+      {/* Summary Card */}
+      <Card style={styles.summaryCard} variant="elevated">
+        <View style={styles.summaryHeader}>
+          <View>
+            <Text style={styles.summaryLabel}>This month spent</Text>
+            <Text style={styles.summaryAmount}>{formatCurrency(totalSpent)}</Text>
+          </View>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>January</Text>
+          </View>
+        </View>
+
+        <View style={styles.budgetInfo}>
+          <View>
+            <Text style={styles.budgetLabel}>Budget left</Text>
+            <Text style={[styles.budgetAmount, budgetLeft < 0 && styles.overBudget]}>
+              {formatCurrency(budgetLeft)}
+            </Text>
+          </View>
+          <View style={styles.progressInfo}>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${Math.min(budgetProgress, 100)}%` }]} />
+            </View>
+            <Text style={styles.progressText}>
+              {budgetProgress.toFixed(0)}% of {formatCurrency(monthlyBudget)}
+            </Text>
+          </View>
+        </View>
+
+        {budgetLeft < 0 && (
+          <View style={styles.alert}>
+            <Text style={styles.alertText}>
+              ⚠️ You're over budget by {formatCurrency(Math.abs(budgetLeft))}
+            </Text>
+          </View>
+        )}
+      </Card>
+
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => {
+            console.log('🔘 Add Expense clicked');
+            navigation.navigate('AddTransaction');
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.actionButtonText}>➕ Add Expense</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => {
+            console.log('🔘 View All clicked');
+            navigation.navigate('Feed');
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.actionButtonText}>📋 View All</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Recent Transactions */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        <Card variant="outlined">
+          {recentTransactions.length > 0 ? (
+            recentTransactions.map((transaction) => (
+              <TransactionRow
+                key={transaction.id}
+                transaction={transaction}
+                onPress={() => navigation.navigate('TransactionDetail', { transaction })}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No transactions yet</Text>
+              <Text style={styles.emptySubtext}>Add your first transaction to get started</Text>
+            </View>
+          )}
+        </Card>
+      </View>
+
+      {/* Stats */}
+      <View style={styles.statsRow}>
+        <Card style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Spent</Text>
+          <Text style={[styles.statValue, { color: Colors.error }]}>
+            {formatCurrency(totalSpent)}
+          </Text>
+        </Card>
+        <Card style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Received</Text>
+          <Text style={[styles.statValue, { color: Colors.success }]}>
+            {formatCurrency(totalReceived)}
+          </Text>
+        </Card>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  header: {
+    padding: Spacing.lg,
+    paddingTop: Spacing.xl,
+  },
+  greeting: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  subtitle: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.textSecondary,
+  },
+  summaryCard: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    backgroundColor: Colors.primary,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.lg,
+  },
+  summaryLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textInverse,
+    opacity: 0.8,
+    marginBottom: Spacing.xs,
+  },
+  summaryAmount: {
+    fontSize: Typography.fontSize['3xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.textInverse,
+  },
+  badge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 20,
+  },
+  badgeText: {
+    color: Colors.textInverse,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  budgetInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  budgetLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textInverse,
+    opacity: 0.8,
+    marginBottom: Spacing.xs,
+  },
+  budgetAmount: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textInverse,
+  },
+  overBudget: {
+    color: Colors.errorLight,
+  },
+  progressInfo: {
+    alignItems: 'flex-end',
+  },
+  progressBar: {
+    width: 100,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 3,
+    marginBottom: Spacing.xs,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.textInverse,
+  },
+  progressText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textInverse,
+    opacity: 0.8,
+  },
+  alert: {
+    marginTop: Spacing.md,
+    padding: Spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+  },
+  alertText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textInverse,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
+  },
+  actionButtonText: {
+    color: Colors.textInverse,
+    fontSize: Typography.fontSize.base,
+    fontWeight: '600',
+  },
+  section: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  emptyState: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  emptySubtext: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+    gap: Spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  statLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  statValue: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+  },
+});
