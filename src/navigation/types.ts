@@ -8,6 +8,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   TransactionDetail: { transaction: Transaction };
   AddTransaction: undefined;
+  AddBudget: undefined;
   Settings: undefined;
   Insights: undefined;
   Alerts: undefined;

@@ -142,7 +142,33 @@ export function convertDateFormat(dateStr: string): string {
  */
 export function getCurrentTime(): string {
   const now = new Date();
-  return format(now, 'h:mm a');
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  const displayMinutes = minutes.toString().padStart(2, '0');
+  return `${displayHours}:${displayMinutes} ${ampm}`;
+}
+
+/**
+ * Get current month name
+ */
+export function getCurrentMonthName(): string {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return months[new Date().getMonth()];
+}
+
+/**
+ * Get greeting based on time of day
+ */
+export function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
 }
 
 /**
@@ -151,6 +177,63 @@ export function getCurrentTime(): string {
 export function isValidAmount(amount: string): boolean {
   const num = parseFloat(amount);
   return !isNaN(num) && num > 0;
+}
+
+/**
+ * Calculate category-wise spending
+ */
+export function getCategorySpending(transactions: any[]): { category: string; amount: number; percentage: number }[] {
+  const expenses = transactions.filter(t => t.type === 'sent');
+  const total = expenses.reduce((sum, t) => sum + t.amount, 0);
+  
+  if (total === 0) return [];
+  
+  const categoryTotals: { [key: string]: number } = {};
+  
+  expenses.forEach(t => {
+    if (!categoryTotals[t.category]) {
+      categoryTotals[t.category] = 0;
+    }
+    categoryTotals[t.category] += t.amount;
+  });
+  
+  return Object.entries(categoryTotals)
+    .map(([category, amount]) => ({
+      category,
+      amount,
+      percentage: (amount / total) * 100,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
+/**
+ * Get weekly spending data for last 7 days
+ */
+export function getWeeklySpending(transactions: any[]): { day: string; amount: number }[] {
+  const today = new Date();
+  const weekData: { [key: string]: number } = {};
+  
+  // Initialize last 7 days
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+    weekData[dayName] = 0;
+  }
+  
+  // Calculate spending for each day
+  const expenses = transactions.filter(t => t.type === 'sent');
+  expenses.forEach(t => {
+    const transactionDate = new Date(t.date);
+    const daysDiff = Math.floor((today.getTime() - transactionDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff >= 0 && daysDiff < 7) {
+      const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][transactionDate.getDay()];
+      weekData[dayName] += t.amount;
+    }
+  });
+  
+  return Object.entries(weekData).map(([day, amount]) => ({ day, amount }));
 }
 
 /**

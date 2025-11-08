@@ -6,8 +6,11 @@ import { Button } from '../../components/ui/Button';
 import { TransactionRow } from '../../components/common/TransactionRow';
 import { Colors, Typography, Spacing } from '../../constants/theme';
 import { useStore } from '../../store/useStore';
-import { formatCurrency, getCurrentMonthRange } from '../../utils/helpers';
+import { formatCurrency, getCurrentMonthRange, getCurrentMonthName, getGreeting, getCategorySpending, getWeeklySpending } from '../../utils/helpers';
 import { TransactionDB } from '../../services/database';
+import { CategoryPieChart } from '../../components/charts/CategoryPieChart';
+import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
+import { SmartSuggestions } from '../../components/common/SmartSuggestions';
 
 export function HomeScreen({ navigation }: any) {
   const { transactions, setTransactions } = useStore();
@@ -69,7 +72,7 @@ export function HomeScreen({ navigation }: any) {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>Good evening! 👋</Text>
+        <Text style={styles.greeting}>{getGreeting()}! 👋</Text>
         <Text style={styles.subtitle}>Here's your spending summary</Text>
       </View>
 
@@ -81,7 +84,7 @@ export function HomeScreen({ navigation }: any) {
             <Text style={styles.summaryAmount}>{formatCurrency(totalSpent)}</Text>
           </View>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>January</Text>
+            <Text style={styles.badgeText}>{getCurrentMonthName()}</Text>
           </View>
         </View>
 
@@ -169,6 +172,31 @@ export function HomeScreen({ navigation }: any) {
           <Text style={[styles.statValue, { color: Colors.success }]}>
             {formatCurrency(totalReceived)}
           </Text>
+        </Card>
+      </View>
+
+      {/* Smart Suggestions */}
+      <View style={styles.section}>
+        <SmartSuggestions
+          totalSpent={totalSpent}
+          monthlyBudget={monthlyBudget}
+          categorySpending={getCategorySpending(transactions)}
+        />
+      </View>
+
+      {/* Category Breakdown */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Category Breakdown</Text>
+        <Card>
+          <CategoryPieChart data={getCategorySpending(transactions)} />
+        </Card>
+      </View>
+
+      {/* Weekly Spending */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Weekly Spending</Text>
+        <Card>
+          <WeeklySpendingChart data={getWeeklySpending(transactions)} />
         </Card>
       </View>
     </ScrollView>

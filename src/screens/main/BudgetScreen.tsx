@@ -6,10 +6,11 @@ import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius, CategoryConfig } from '../../constants/theme';
 import { useStore } from '../../store/useStore';
 import { BudgetDB, TransactionDB } from '../../services/database';
-import { formatCurrency, getCurrentMonthRange } from '../../utils/helpers';
+import { formatCurrency, getCurrentMonthRange, getCategorySpending } from '../../utils/helpers';
+import { BudgetRecommendations } from '../../components/common/BudgetRecommendations';
 
-export function BudgetScreen() {
-  const { budgets, setBudgets } = useStore();
+export function BudgetScreen({ navigation }: any) {
+  const { budgets, setBudgets, transactions } = useStore();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -118,7 +119,7 @@ export function BudgetScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Category Budgets</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('AddBudget')}>
               <Text style={styles.addButton}>+ Add</Text>
             </TouchableOpacity>
           </View>
@@ -190,16 +191,16 @@ export function BudgetScreen() {
           )}
         </View>
 
-        {/* Tips */}
-        <Card style={styles.tipsCard}>
-          <Text style={styles.tipsTitle}>💡 Budget Tips</Text>
-          <Text style={styles.tipsText}>
-            • Set realistic budgets based on your spending patterns{'\n'}
-            • Review and adjust budgets monthly{'\n'}
-            • Enable alerts to stay on track{'\n'}
-            • Use the 50/30/20 rule: 50% needs, 30% wants, 20% savings
-          </Text>
-        </Card>
+        {/* Budget Recommendations */}
+        <BudgetRecommendations
+          categorySpending={getCategorySpending(transactions).map(c => ({
+            category: c.category,
+            amount: c.amount,
+          }))}
+          totalIncome={transactions
+            .filter(t => t.type === 'received')
+            .reduce((sum, t) => sum + t.amount, 0) || 50000}
+        />
       </ScrollView>
     </View>
   );

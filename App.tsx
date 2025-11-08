@@ -10,6 +10,8 @@ import { TransactionFeedScreen } from './src/screens/main/TransactionFeedScreen'
 import { BudgetScreen } from './src/screens/main/BudgetScreen';
 import { ProfileScreen } from './src/screens/main/ProfileScreen';
 import { AddTransactionScreen } from './src/screens/transaction/AddTransactionScreen';
+import { TransactionDetailScreen } from './src/screens/transaction/TransactionDetailScreen';
+import { AddBudgetScreen } from './src/screens/budget/AddBudgetScreen';
 import { seedMockData } from './src/utils/mockData';
 import { RootStackParamList, MainTabParamList } from './src/navigation/types';
 import { Colors } from './src/constants/theme';
@@ -113,6 +115,21 @@ export default function App() {
           <Stack.Screen 
             name="AddTransaction" 
             component={AddTransactionScreen}
+            options={{ 
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen 
+            name="TransactionDetail" 
+            component={TransactionDetailScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="AddBudget" 
+            component={AddBudgetScreen}
             options={{ 
               presentation: 'modal',
               animation: 'slide_from_bottom',

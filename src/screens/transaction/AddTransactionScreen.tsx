@@ -8,7 +8,11 @@ import { TransactionDB } from '../../services/database';
 import { generateId, getCurrentTime, isValidAmount } from '../../utils/helpers';
 import { Transaction } from '../../types';
 
-const categories = Object.keys(CategoryConfig);
+// Expense categories
+const expenseCategories = Object.keys(CategoryConfig);
+
+// Income categories
+const incomeCategories = ['Salary', 'Freelance', 'Investment', 'Gift', 'Refund', 'Other'];
 
 export function AddTransactionScreen({ navigation }: any) {
   const { addTransaction } = useStore();
@@ -18,6 +22,16 @@ export function AddTransactionScreen({ navigation }: any) {
   const [category, setCategory] = useState('Food');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Get categories based on transaction type
+  const categories = type === 'sent' ? expenseCategories : incomeCategories;
+
+  // Update category when type changes
+  const handleTypeChange = (newType: 'sent' | 'received') => {
+    setType(newType);
+    // Set default category based on type
+    setCategory(newType === 'sent' ? 'Food' : 'Salary');
+  };
 
   const handleSave = async () => {
     if (!amount || !merchant) {
@@ -85,7 +99,7 @@ export function AddTransactionScreen({ navigation }: any) {
           <View style={styles.typeContainer}>
             <TouchableOpacity
               style={[styles.typeButton, type === 'sent' && styles.typeButtonActive]}
-              onPress={() => setType('sent')}
+              onPress={() => handleTypeChange('sent')}
             >
               <Text style={[styles.typeText, type === 'sent' && styles.typeTextActive]}>
                 Expense (Sent)
@@ -93,7 +107,7 @@ export function AddTransactionScreen({ navigation }: any) {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.typeButton, type === 'received' && styles.typeButtonActive]}
-              onPress={() => setType('received')}
+              onPress={() => handleTypeChange('received')}
             >
               <Text style={[styles.typeText, type === 'received' && styles.typeTextActive]}>
                 Income (Received)

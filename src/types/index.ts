@@ -23,7 +23,7 @@ export interface Budget {
   category: string;
   amount: number;
   spent: number;
-  period: 'daily' | 'weekly' | 'monthly';
+  period: 'daily' | 'weekly' | 'monthly' | 'yearly';
   startDate: string;
   endDate: string;
 }
