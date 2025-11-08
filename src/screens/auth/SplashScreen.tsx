@@ -1,19 +1,50 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Colors, Typography, Spacing } from '../../constants/theme';
+import { initDatabase } from '../../services/database';
+import { seedMockData } from '../../utils/mockData';
+import { AuthService } from '../../services/auth';
 
 interface SplashScreenProps {
-  onComplete: () => void;
+  navigation: any;
 }
 
-export function SplashScreen({ onComplete }: SplashScreenProps) {
+export function SplashScreen({ navigation }: SplashScreenProps) {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onComplete();
-    }, 2000);
+    initializeApp();
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [onComplete]);
+  const initializeApp = async () => {
+    try {
+      console.log('🚀 Initializing FinMate...');
+      
+      // Initialize database
+      await initDatabase();
+      console.log('✅ Database initialized');
+      
+      // Seed mock data
+      await seedMockData();
+      console.log('✅ Mock data seeded');
+      
+      // Check if user is logged in
+      const isLoggedIn = await AuthService.isLoggedIn();
+      console.log('🔐 Login status:', isLoggedIn);
+      
+      // Wait a bit for splash screen
+      setTimeout(() => {
+        console.log('✅ App ready!');
+        if (isLoggedIn) {
+          navigation.replace('MainTabs');
+        } else {
+          navigation.replace('Landing');
+        }
+      }, 1500);
+    } catch (error) {
+      console.error('❌ Error initializing app:', error);
+      // Still proceed even if there's an error
+      setTimeout(() => navigation.replace('Landing'), 1500);
+    }
+  };
 
   console.log('🎨 SplashScreen rendering...');
   

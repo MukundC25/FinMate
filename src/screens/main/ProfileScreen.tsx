@@ -1,51 +1,102 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Card } from '../../components/ui/Card';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
 import { formatCurrency } from '../../utils/helpers';
+import { useStore } from '../../store/useStore';
+import { TransactionDB, BudgetDB } from '../../services/database';
+import { AuthService } from '../../services/auth';
 
 export function ProfileScreen({ navigation }: any) {
+  const { setTransactions, setBudgets } = useStore();
   const user = {
     name: 'User',
     email: 'user@example.com',
     monthlyBudget: 16000,
   };
 
+  const handleClearData = () => {
+    Alert.alert(
+      'Clear All Data',
+      'This will permanently delete all transactions, budgets, and settings. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await TransactionDB.deleteAll();
+              await BudgetDB.deleteAll();
+              setTransactions([]);
+              setBudgets([]);
+              Alert.alert('Success', 'All data has been cleared');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear data');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const menuItems = [
     {
       section: 'Account',
       items: [
-        { icon: '👤', label: 'Edit Profile', onPress: () => {} },
-        { icon: '🎯', label: 'Monthly Budget', value: formatCurrency(user.monthlyBudget), onPress: () => {} },
-        { icon: '🏦', label: 'Bank Accounts', onPress: () => {} },
+        { icon: '👤', label: 'Edit Profile', onPress: () => Alert.alert('Coming Soon', 'Edit profile feature will be available soon!') },
+        { icon: '🎯', label: 'Monthly Budget', value: formatCurrency(user.monthlyBudget), onPress: () => Alert.alert('Coming Soon', 'Budget settings will be available soon!') },
+        { icon: '🏦', label: 'Bank Accounts', onPress: () => Alert.alert('Coming Soon', 'Bank account management will be available soon!') },
       ],
     },
     {
       section: 'Preferences',
       items: [
-        { icon: '🔔', label: 'Notifications', onPress: () => {} },
-        { icon: '🏷️', label: 'Categories', onPress: () => {} },
-        { icon: '🌙', label: 'Dark Mode', toggle: false, onPress: () => {} },
-        { icon: '💱', label: 'Currency', value: 'INR (₹)', onPress: () => {} },
+        { icon: '🔔', label: 'Notifications', onPress: () => navigation.navigate('Settings') },
+        { icon: '🏷️', label: 'Categories', onPress: () => Alert.alert('Coming Soon', 'Category management will be available soon!') },
+        { icon: '🌙', label: 'Dark Mode', onPress: () => navigation.navigate('Settings') },
+        { icon: '💱', label: 'Currency', value: 'INR (₹)', onPress: () => navigation.navigate('Settings') },
       ],
     },
     {
       section: 'Data',
       items: [
-        { icon: '📊', label: 'Export Data', onPress: () => {} },
-        { icon: '📥', label: 'Import Transactions', onPress: () => {} },
-        { icon: '🗑️', label: 'Clear All Data', onPress: () => {}, danger: true },
+        { icon: '📊', label: 'Export Data', onPress: () => navigation.navigate('ExportData') },
+        { icon: '📥', label: 'Import Transactions', onPress: () => navigation.navigate('ImportData') },
+        { icon: '🗑️', label: 'Clear All Data', onPress: handleClearData, danger: true },
       ],
     },
     {
       section: 'About',
       items: [
-        { icon: 'ℹ️', label: 'About FinMate', value: 'v1.0.0', onPress: () => {} },
-        { icon: '📄', label: 'Privacy Policy', onPress: () => {} },
-        { icon: '📧', label: 'Contact Support', onPress: () => {} },
+        { icon: 'ℹ️', label: 'About FinMate', value: 'v1.0.0', onPress: () => Alert.alert('FinMate', 'Version 1.0.0\n\nYour personal finance manager') },
+        { icon: '📄', label: 'Privacy Policy', onPress: () => Alert.alert('Privacy Policy', 'Your data is stored locally on your device and is never shared.') },
+        { icon: '📧', label: 'Contact Support', onPress: () => Alert.alert('Contact Support', 'Email: support@finmate.app') },
       ],
     },
   ];
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AuthService.logout();
+              navigation.replace('Landing');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to logout');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -106,7 +157,7 @@ export function ProfileScreen({ navigation }: any) {
         ))}
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 

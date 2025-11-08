@@ -5,6 +5,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SplashScreen } from './src/screens/auth/SplashScreen';
+import { LandingScreen } from './src/screens/auth/LandingScreen';
+import { PermissionsScreen } from './src/screens/auth/PermissionsScreen';
+import { LoginScreen } from './src/screens/auth/LoginScreen';
 import { HomeScreen } from './src/screens/main/HomeScreen';
 import { TransactionFeedScreen } from './src/screens/main/TransactionFeedScreen';
 import { BudgetScreen } from './src/screens/main/BudgetScreen';
@@ -12,6 +15,9 @@ import { ProfileScreen } from './src/screens/main/ProfileScreen';
 import { AddTransactionScreen } from './src/screens/transaction/AddTransactionScreen';
 import { TransactionDetailScreen } from './src/screens/transaction/TransactionDetailScreen';
 import { AddBudgetScreen } from './src/screens/budget/AddBudgetScreen';
+import { SettingsScreen } from './src/screens/settings/SettingsScreen';
+import { ExportDataScreen } from './src/screens/settings/ExportDataScreen';
+import { ImportDataScreen } from './src/screens/settings/ImportDataScreen';
 import { seedMockData } from './src/utils/mockData';
 import { RootStackParamList, MainTabParamList } from './src/navigation/types';
 import { Colors } from './src/constants/theme';
@@ -103,14 +109,10 @@ export default function App() {
             animation: 'slide_from_right',
           }}
         >
-          <Stack.Screen name="Splash">
-            {(props: any) => (
-              <SplashScreen 
-                {...props} 
-                onComplete={() => props.navigation.replace('MainTabs')} 
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="Splash" component={SplashScreen} />
+          <Stack.Screen name="Landing" component={LandingScreen} />
+          <Stack.Screen name="Permissions" component={PermissionsScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="MainTabs" component={MainTabs} />
           <Stack.Screen 
             name="AddTransaction" 
@@ -133,6 +135,27 @@ export default function App() {
             options={{ 
               presentation: 'modal',
               animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen 
+            name="Settings" 
+            component={SettingsScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="ExportData" 
+            component={ExportDataScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="ImportData" 
+            component={ImportDataScreen}
+            options={{ 
+              animation: 'slide_from_right',
             }}
           />
         </Stack.Navigator>

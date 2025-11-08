@@ -3,13 +3,17 @@ import { Transaction } from '../types';
 
 export type RootStackParamList = {
   Splash: undefined;
-  Onboarding: undefined;
+  Landing: undefined;
+  Permissions: undefined;
   Login: undefined;
+  Onboarding: undefined;
   MainTabs: undefined;
   TransactionDetail: { transaction: Transaction };
   AddTransaction: undefined;
   AddBudget: undefined;
   Settings: undefined;
+  ExportData: undefined;
+  ImportData: undefined;
   Insights: undefined;
   Alerts: undefined;
 };

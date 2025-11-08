@@ -172,6 +172,12 @@ export const TransactionDB = {
     await database.runAsync('DELETE FROM transactions WHERE id = ?', [id]);
   },
 
+  async deleteAll(): Promise<void> {
+    const database = await getDatabase();
+    
+    await database.runAsync('DELETE FROM transactions');
+  },
+
   async getTotalSpent(startDate: string, endDate: string): Promise<number> {
     const database = await getDatabase();
     
@@ -258,6 +264,12 @@ export const BudgetDB = {
     const database = await getDatabase();
     
     await database.runAsync('DELETE FROM budgets WHERE id = ?', [id]);
+  },
+
+  async deleteAll(): Promise<void> {
+    const database = await getDatabase();
+    
+    await database.runAsync('DELETE FROM budgets');
   },
 };
 
