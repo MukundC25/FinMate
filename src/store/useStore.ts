@@ -6,6 +6,8 @@ interface AppState {
   // User
   user: User | null;
   setUser: (user: User | null) => void;
+  currentUserId: string | null;
+  setCurrentUserId: (userId: string | null) => void;
 
   // Transactions
   transactions: Transaction[];
@@ -40,6 +42,8 @@ export const useStore = create<AppState>((set) => ({
   // User
   user: null,
   setUser: (user) => set({ user }),
+  currentUserId: null,
+  setCurrentUserId: (userId) => set({ currentUserId: userId }),
 
   // Transactions
   transactions: [],

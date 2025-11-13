@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius, CategoryConfig } from '../../constants/theme';
 import { useStore } from '../../store/useStore';
 import { BudgetDB, TransactionDB } from '../../services/database';
-import { formatCurrency, getCurrentMonthRange, getCategorySpending } from '../../utils/helpers';
+import { getCurrentMonthRange, getCategorySpending } from '../../utils/helpers';
+import { useCurrencyFormat } from '../../hooks/useCurrencyFormat';
 import { BudgetRecommendations } from '../../components/common/BudgetRecommendations';
 
 export function BudgetScreen({ navigation }: any) {
-  const { budgets, setBudgets, transactions } = useStore();
+  const { budgets, setBudgets, transactions, currentUserId } = useStore();
+  const { formatCurrency } = useCurrencyFormat();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -22,11 +24,16 @@ export function BudgetScreen({ navigation }: any) {
   );
 
   const loadBudgets = async () => {
+    if (!currentUserId) {
+      console.log('⚠️ No user logged in');
+      return;
+    }
+
     try {
-      console.log('💰 Loading budgets...');
+      console.log('📊 Loading budgets for user:', currentUserId);
       setLoading(true);
       
-      const allBudgets = await BudgetDB.getAll();
+      const allBudgets = await BudgetDB.getAll(currentUserId);
       console.log(`✅ Loaded ${allBudgets.length} budgets`);
       
       // Update spent amounts from transactions
@@ -132,7 +139,27 @@ export function BudgetScreen({ navigation }: any) {
               const categoryInfo = CategoryConfig[budget.category as keyof typeof CategoryConfig] || CategoryConfig.Others;
 
               return (
-                <Card key={budget.id} style={styles.budgetCard}>
+                <TouchableOpacity 
+                  key={budget.id}
+                  onLongPress={() => {
+                    Alert.alert(
+                      'Delete Budget',
+                      `Delete ${budget.category} budget?`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Delete',
+                          style: 'destructive',
+                          onPress: async () => {
+                            await BudgetDB.delete(budget.id);
+                            loadBudgets();
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                >
+                <Card style={styles.budgetCard}>
                   <View style={styles.budgetHeader}>
                     <View style={styles.budgetInfo}>
                       <View style={[styles.categoryIcon, { backgroundColor: categoryInfo.color + '20' }]}>
@@ -176,6 +203,7 @@ export function BudgetScreen({ navigation }: any) {
                     </View>
                   )}
                 </Card>
+                </TouchableOpacity>
               );
             })
           ) : (
@@ -184,7 +212,7 @@ export function BudgetScreen({ navigation }: any) {
               <Text style={styles.emptySubtext}>Create your first budget to track spending</Text>
               <Button
                 title="Create Budget"
-                onPress={() => {}}
+                onPress={() => navigation.navigate('AddBudget')}
                 style={styles.emptyButton}
               />
             </Card>

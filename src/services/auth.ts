@@ -1,14 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserDB } from './database';
 
 const SESSION_KEY = '@finmate_session';
-const USER_KEY = '@finmate_user';
+const CURRENT_USER_KEY = '@finmate_current_user';
 
 export interface Session {
   isLoggedIn: boolean;
-  userId?: string;
+  userId: string;
   email?: string;
-  loginMethod?: 'email' | 'google' | 'guest';
-  loginTime?: string;
+  name?: string;
+  loginMethod: 'email' | 'google' | 'guest';
+  loginTime: string;
 }
 
 export const AuthService = {
@@ -50,15 +52,41 @@ export const AuthService = {
   },
 
   /**
+   * Get current user ID
+   */
+  async getCurrentUserId(): Promise<string | null> {
+    try {
+      const session = await this.getSession();
+      return session?.userId || null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  /**
    * Login with email
    */
   async loginWithEmail(email: string, password: string): Promise<Session> {
-    // Simulate API call
-    // In production, this would call your backend
+    // Check if user exists
+    let user = await UserDB.getByEmail(email);
+    
+    if (!user) {
+      // Create new user
+      const userId = 'user_' + Date.now();
+      await UserDB.create({
+        id: userId,
+        email,
+        name: email.split('@')[0], // Use email prefix as name
+        loginMethod: 'email',
+      });
+      user = { id: userId, email, name: email.split('@')[0] };
+    }
+
     return {
       isLoggedIn: true,
-      userId: 'user_' + Date.now(),
-      email,
+      userId: user.id,
+      email: user.email,
+      name: user.name,
       loginMethod: 'email',
       loginTime: new Date().toISOString(),
     };
@@ -68,9 +96,19 @@ export const AuthService = {
    * Login as guest
    */
   async loginAsGuest(): Promise<Session> {
+    const userId = 'guest_' + Date.now();
+    
+    // Create guest user
+    await UserDB.create({
+      id: userId,
+      name: 'Guest User',
+      loginMethod: 'guest',
+    });
+
     return {
       isLoggedIn: true,
-      userId: 'guest_' + Date.now(),
+      userId,
+      name: 'Guest User',
       loginMethod: 'guest',
       loginTime: new Date().toISOString(),
     };
@@ -82,7 +120,7 @@ export const AuthService = {
   async logout(): Promise<void> {
     try {
       await AsyncStorage.removeItem(SESSION_KEY);
-      await AsyncStorage.removeItem(USER_KEY);
+      await AsyncStorage.removeItem(CURRENT_USER_KEY);
     } catch (error) {
       console.error('Error logging out:', error);
       throw error;

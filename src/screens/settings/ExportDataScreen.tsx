@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Share, ScrollView } from 'react-native';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
@@ -110,7 +110,7 @@ export function ExportDataScreen({ navigation }: any) {
         <View style={styles.placeholder} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Summary Card */}
         <Card style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>📊 Data Summary</Text>
@@ -185,7 +185,7 @@ export function ExportDataScreen({ navigation }: any) {
             • Keep backups safe and secure
           </Text>
         </Card>
-      </View>
+      </ScrollView>
     </View>
   );
 }

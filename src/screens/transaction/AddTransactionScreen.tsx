@@ -15,7 +15,7 @@ const expenseCategories = Object.keys(CategoryConfig);
 const incomeCategories = ['Salary', 'Freelance', 'Investment', 'Gift', 'Refund', 'Other'];
 
 export function AddTransactionScreen({ navigation }: any) {
-  const { addTransaction } = useStore();
+  const { addTransaction, currentUserId } = useStore();
   const [type, setType] = useState<'sent' | 'received'>('sent');
   const [amount, setAmount] = useState('');
   const [merchant, setMerchant] = useState('');
@@ -44,6 +44,11 @@ export function AddTransactionScreen({ navigation }: any) {
       return;
     }
 
+    if (!currentUserId) {
+      alert('Please login first');
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -60,8 +65,8 @@ export function AddTransactionScreen({ navigation }: any) {
         notes,
       };
 
-      console.log('💾 Saving transaction:', transaction);
-      await TransactionDB.create(transaction);
+      console.log('💾 Saving transaction for user:', currentUserId);
+      await TransactionDB.create({ ...transaction, userId: currentUserId });
       addTransaction(transaction);
       
       console.log('✅ Transaction saved successfully!');

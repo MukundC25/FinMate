@@ -4,8 +4,10 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
 import { AuthService } from '../../services/auth';
+import { useStore } from '../../store/useStore';
 
 export function LoginScreen({ navigation }: any) {
+  const { setCurrentUserId } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,6 +23,10 @@ export function LoginScreen({ navigation }: any) {
       const session = await AuthService.loginWithEmail(email, password);
       await AuthService.saveSession(session);
       
+      // Set current user ID in store
+      setCurrentUserId(session.userId);
+      console.log('👤 Logged in as:', session.userId, session.email);
+      
       // Navigate to main app
       navigation.replace('MainTabs');
     } catch (error) {
@@ -35,6 +41,10 @@ export function LoginScreen({ navigation }: any) {
     try {
       const session = await AuthService.loginAsGuest();
       await AuthService.saveSession(session);
+      
+      // Set current user ID in store
+      setCurrentUserId(session.userId);
+      console.log('👤 Logged in as guest:', session.userId);
       
       // Navigate to main app
       navigation.replace('MainTabs');

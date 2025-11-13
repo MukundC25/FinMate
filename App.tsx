@@ -18,9 +18,16 @@ import { AddBudgetScreen } from './src/screens/budget/AddBudgetScreen';
 import { SettingsScreen } from './src/screens/settings/SettingsScreen';
 import { ExportDataScreen } from './src/screens/settings/ExportDataScreen';
 import { ImportDataScreen } from './src/screens/settings/ImportDataScreen';
-import { seedMockData } from './src/utils/mockData';
+import { EditProfileScreen } from './src/screens/profile/EditProfileScreen';
+import { BankAccountsScreen } from './src/screens/profile/BankAccountsScreen';
+import { DarkModeScreen } from './src/screens/settings/DarkModeScreen';
+import { NotificationsScreen } from './src/screens/settings/NotificationsScreen';
+import { CurrencyScreen } from './src/screens/settings/CurrencyScreen';
+import { initDatabase } from './src/services/database';
 import { RootStackParamList, MainTabParamList } from './src/navigation/types';
 import { Colors } from './src/constants/theme';
+import { ThemeProvider } from './src/contexts/ThemeContext';
+import { CurrencyProvider } from './src/contexts/CurrencyContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -82,9 +89,12 @@ export default function App() {
 
   const initializeApp = async () => {
     try {
-      console.log('🚀 Starting FinMate...');
-      await seedMockData();
-      console.log('✅ App ready!');
+      console.log('🚀 Initializing FinMate...');
+      
+      // Initialize database
+      await initDatabase();
+      console.log('✅ Database initialized');
+      
       setIsReady(true);
     } catch (error) {
       console.error('❌ Initialization error:', error);
@@ -93,16 +103,14 @@ export default function App() {
   };
 
   if (!isReady) {
-    return (
-      <SafeAreaProvider>
-        <SplashScreen onComplete={() => {}} />
-      </SafeAreaProvider>
-    );
+    return null; // Show nothing while initializing
   }
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <ThemeProvider>
+        <CurrencyProvider>
+          <NavigationContainer>
         <Stack.Navigator
           screenOptions={{
             headerShown: false,
@@ -158,9 +166,46 @@ export default function App() {
               animation: 'slide_from_right',
             }}
           />
+          <Stack.Screen 
+            name="EditProfile" 
+            component={EditProfileScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="BankAccounts" 
+            component={BankAccountsScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="DarkMode" 
+            component={DarkModeScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="Notifications" 
+            component={NotificationsScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="Currency" 
+            component={CurrencyScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
       <StatusBar style="auto" />
+      </CurrencyProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

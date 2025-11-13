@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Transaction } from '../../types';
 import { Colors, Typography, Spacing, BorderRadius, CategoryConfig } from '../../constants/theme';
-import { formatCurrency } from '../../utils/helpers';
+import { useCurrencyFormat } from '../../hooks/useCurrencyFormat';
 
 interface TransactionRowProps {
   transaction: Transaction;
@@ -10,6 +10,7 @@ interface TransactionRowProps {
 }
 
 export function TransactionRow({ transaction, onPress }: TransactionRowProps) {
+  const { formatCurrency } = useCurrencyFormat();
   const isDebit = transaction.type === 'sent';
   const categoryInfo = CategoryConfig[transaction.category as keyof typeof CategoryConfig] || CategoryConfig.Others;
 

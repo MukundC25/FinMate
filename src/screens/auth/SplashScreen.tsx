@@ -2,14 +2,16 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Colors, Typography, Spacing } from '../../constants/theme';
 import { initDatabase } from '../../services/database';
-import { seedMockData } from '../../utils/mockData';
 import { AuthService } from '../../services/auth';
+import { useStore } from '../../store/useStore';
 
 interface SplashScreenProps {
   navigation: any;
 }
 
 export function SplashScreen({ navigation }: SplashScreenProps) {
+  const { setCurrentUserId } = useStore();
+  
   useEffect(() => {
     initializeApp();
   }, []);
@@ -22,13 +24,16 @@ export function SplashScreen({ navigation }: SplashScreenProps) {
       await initDatabase();
       console.log('✅ Database initialized');
       
-      // Seed mock data
-      await seedMockData();
-      console.log('✅ Mock data seeded');
-      
       // Check if user is logged in
-      const isLoggedIn = await AuthService.isLoggedIn();
+      const session = await AuthService.getSession();
+      const isLoggedIn = session?.isLoggedIn || false;
       console.log('🔐 Login status:', isLoggedIn);
+      
+      if (isLoggedIn && session?.userId) {
+        // Set current user ID in store
+        setCurrentUserId(session.userId);
+        console.log('👤 User ID set:', session.userId);
+      }
       
       // Wait a bit for splash screen
       setTimeout(() => {

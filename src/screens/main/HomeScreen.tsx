@@ -6,36 +6,51 @@ import { Button } from '../../components/ui/Button';
 import { TransactionRow } from '../../components/common/TransactionRow';
 import { Colors, Typography, Spacing } from '../../constants/theme';
 import { useStore } from '../../store/useStore';
-import { formatCurrency, getCurrentMonthRange, getCurrentMonthName, getGreeting, getCategorySpending, getWeeklySpending } from '../../utils/helpers';
-import { TransactionDB } from '../../services/database';
+import { getCurrentMonthRange, getCurrentMonthName, getGreeting, getCategorySpending, getWeeklySpending } from '../../utils/helpers';
+import { useCurrencyFormat } from '../../hooks/useCurrencyFormat';
+import { TransactionDB, BudgetDB } from '../../services/database';
 import { CategoryPieChart } from '../../components/charts/CategoryPieChart';
 import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
 import { SmartSuggestions } from '../../components/common/SmartSuggestions';
 
 export function HomeScreen({ navigation }: any) {
-  const { transactions, setTransactions } = useStore();
+  const { transactions, setTransactions, budgets, setBudgets, currentUserId } = useStore();
+  const { formatCurrency } = useCurrencyFormat();
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalReceived, setTotalReceived] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const monthlyBudget = 16000;
+  
+  // Calculate total monthly budget from all budgets
+  const monthlyBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
 
   // Reload data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      loadData();
-    }, [])
+      if (currentUserId) {
+        loadData();
+      }
+    }, [currentUserId])
   );
 
   const loadData = async () => {
+    if (!currentUserId) {
+      console.log('⚠️ No user logged in');
+      return;
+    }
+
     try {
-      console.log('📊 Loading home screen data...');
-      const allTransactions = await TransactionDB.getAll();
+      console.log('📊 Loading home screen data for user:', currentUserId);
+      const allTransactions = await TransactionDB.getAll(currentUserId);
       console.log(`✅ Loaded ${allTransactions.length} transactions`);
       setTransactions(allTransactions);
 
+      // Load budgets to calculate total budget
+      const allBudgets = await BudgetDB.getAll(currentUserId);
+      setBudgets(allBudgets);
+
       const { start, end } = getCurrentMonthRange();
-      const spent = await TransactionDB.getTotalSpent(start, end);
+      const spent = await TransactionDB.getTotalSpent(start, end, currentUserId);
       setTotalSpent(spent);
 
       // Calculate total received
@@ -63,7 +78,7 @@ export function HomeScreen({ navigation }: any) {
   const recentTransactions = transactions.slice(0, 5);
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container} 
       showsVerticalScrollIndicator={false}
       refreshControl={

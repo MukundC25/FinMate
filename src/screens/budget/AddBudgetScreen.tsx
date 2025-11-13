@@ -20,21 +20,26 @@ interface AddBudgetScreenProps {
   navigation: any;
 }
 
-export function AddBudgetScreen({ navigation }: AddBudgetScreenProps) {
-  const { addBudget } = useStore();
+export function AddBudgetScreen({ navigation }: any) {
+  const { addBudget, currentUserId } = useStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [amount, setAmount] = useState('');
   const [period, setPeriod] = useState<'monthly' | 'weekly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
+
     if (!selectedCategory) {
       Alert.alert('Error', 'Please select a category');
       return;
     }
 
-    if (!amount || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
+    if (!currentUserId) {
+      Alert.alert('Error', 'Please login first');
       return;
     }
 
@@ -54,8 +59,8 @@ export function AddBudgetScreen({ navigation }: AddBudgetScreenProps) {
         endDate: end,
       };
 
-      console.log('💰 Creating budget:', budget);
-      await BudgetDB.create(budget);
+      console.log('💾 Saving budget for user:', currentUserId);
+      await BudgetDB.create({ ...budget, userId: currentUserId });
       addBudget(budget);
       
       console.log('✅ Budget created successfully!');

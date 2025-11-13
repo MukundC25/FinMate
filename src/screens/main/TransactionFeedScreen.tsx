@@ -8,7 +8,7 @@ import { TransactionDB } from '../../services/database';
 import { groupByDate } from '../../utils/helpers';
 
 export function TransactionFeedScreen({ navigation }: any) {
-  const { transactions, setTransactions } = useStore();
+  const { transactions, setTransactions, currentUserId } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'sent' | 'received'>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -21,9 +21,14 @@ export function TransactionFeedScreen({ navigation }: any) {
   );
 
   const loadTransactions = async () => {
+    if (!currentUserId) {
+      console.log('⚠️ No user logged in');
+      return;
+    }
+
     try {
-      console.log('📋 Loading transactions...');
-      const allTransactions = await TransactionDB.getAll();
+      console.log('📊 Loading transactions for user:', currentUserId);
+      const allTransactions = await TransactionDB.getAll(currentUserId);
       setTransactions(allTransactions);
       setRefreshing(false);
     } catch (error) {

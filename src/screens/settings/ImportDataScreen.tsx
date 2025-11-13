@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
@@ -8,7 +8,7 @@ import { TransactionDB } from '../../services/database';
 import { generateId } from '../../utils/helpers';
 
 export function ImportDataScreen({ navigation }: any) {
-  const { addTransaction, setTransactions } = useStore();
+  const { addTransaction, setTransactions, currentUserId } = useStore();
   const [importing, setImporting] = useState(false);
   const [csvData, setCsvData] = useState('');
 
@@ -65,8 +65,9 @@ export function ImportDataScreen({ navigation }: any) {
 
       // Import to database
       for (const transaction of transactions) {
-        await TransactionDB.create(transaction);
-        addTransaction(transaction);
+        const newTransaction = { ...transaction, userId: currentUserId! };
+        await TransactionDB.create(newTransaction);
+        addTransaction(newTransaction);
       }
 
       Alert.alert(
@@ -98,11 +99,11 @@ export function ImportDataScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Import Data</Text>
+        <Text style={styles.headerTitle}>Import Transactions</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Instructions Card */}
         <Card style={styles.instructionsCard}>
           <Text style={styles.sectionTitle}>📥 How to Import</Text>
@@ -165,7 +166,7 @@ export function ImportDataScreen({ navigation }: any) {
             • Make sure your CSV format matches the sample above
           </Text>
         </Card>
-      </View>
+      </ScrollView>
     </View>
   );
 }

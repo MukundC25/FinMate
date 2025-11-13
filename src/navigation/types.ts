@@ -14,6 +14,11 @@ export type RootStackParamList = {
   Settings: undefined;
   ExportData: undefined;
   ImportData: undefined;
+  EditProfile: undefined;
+  BankAccounts: undefined;
+  DarkMode: undefined;
+  Notifications: undefined;
+  Currency: undefined;
   Insights: undefined;
   Alerts: undefined;
 };

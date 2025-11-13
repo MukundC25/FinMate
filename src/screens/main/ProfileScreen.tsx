@@ -1,19 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Card } from '../../components/ui/Card';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
-import { formatCurrency } from '../../utils/helpers';
+import { useCurrencyFormat } from '../../hooks/useCurrencyFormat';
 import { useStore } from '../../store/useStore';
-import { TransactionDB, BudgetDB } from '../../services/database';
+import { TransactionDB, BudgetDB, UserDB } from '../../services/database';
 import { AuthService } from '../../services/auth';
 
 export function ProfileScreen({ navigation }: any) {
-  const { setTransactions, setBudgets } = useStore();
-  const user = {
+  const { transactions, budgets, setTransactions, setBudgets, setCurrentUserId, currentUserId } = useStore();
+  const { formatCurrency, selectedCurrency } = useCurrencyFormat();
+  const [user, setUser] = useState({
     name: 'User',
     email: 'user@example.com',
-    monthlyBudget: 16000,
+  });
+  
+  // Load user data on mount and when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserData();
+    }, [currentUserId])
+  );
+  
+  const loadUserData = async () => {
+    if (!currentUserId) return;
+    
+    try {
+      const userData = await UserDB.getById(currentUserId);
+      if (userData) {
+        setUser({
+          name: userData.name || 'User',
+          email: userData.email || 'user@example.com',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
   };
+  
+  // Calculate dynamic stats
+  const totalTransactions = transactions.length;
+  const totalBudgets = budgets.length;
+  const totalCategories = new Set(transactions.map(t => t.category)).size;
 
   const handleClearData = () => {
     Alert.alert(
@@ -44,18 +73,17 @@ export function ProfileScreen({ navigation }: any) {
     {
       section: 'Account',
       items: [
-        { icon: '👤', label: 'Edit Profile', onPress: () => Alert.alert('Coming Soon', 'Edit profile feature will be available soon!') },
-        { icon: '🎯', label: 'Monthly Budget', value: formatCurrency(user.monthlyBudget), onPress: () => Alert.alert('Coming Soon', 'Budget settings will be available soon!') },
-        { icon: '🏦', label: 'Bank Accounts', onPress: () => Alert.alert('Coming Soon', 'Bank account management will be available soon!') },
+        { icon: '👤', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
+        { icon: '🎯', label: 'Monthly Budget', value: formatCurrency(budgets.reduce((sum, b) => sum + b.amount, 0)), onPress: () => navigation.navigate('MainTabs', { screen: 'Budgets' }) },
+        { icon: '🏦', label: 'Bank Accounts', onPress: () => navigation.navigate('BankAccounts') },
       ],
     },
     {
       section: 'Preferences',
       items: [
-        { icon: '🔔', label: 'Notifications', onPress: () => navigation.navigate('Settings') },
+        { icon: '🔔', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
         { icon: '🏷️', label: 'Categories', onPress: () => Alert.alert('Coming Soon', 'Category management will be available soon!') },
-        { icon: '🌙', label: 'Dark Mode', onPress: () => navigation.navigate('Settings') },
-        { icon: '💱', label: 'Currency', value: 'INR (₹)', onPress: () => navigation.navigate('Settings') },
+        { icon: '💱', label: 'Currency', value: `${selectedCurrency.code} (${selectedCurrency.symbol})`, onPress: () => navigation.navigate('Currency') },
       ],
     },
     {
@@ -88,6 +116,11 @@ export function ProfileScreen({ navigation }: any) {
           onPress: async () => {
             try {
               await AuthService.logout();
+              // Clear user data from store
+              setCurrentUserId(null);
+              setTransactions([]);
+              setBudgets([]);
+              console.log('👋 Logged out successfully');
               navigation.replace('Landing');
             } catch (error) {
               Alert.alert('Error', 'Failed to logout');
@@ -100,7 +133,7 @@ export function ProfileScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Profile Header */}
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
@@ -113,15 +146,15 @@ export function ProfileScreen({ navigation }: any) {
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
           <Card style={styles.statCard}>
-            <Text style={styles.statValue}>5</Text>
+            <Text style={styles.statValue}>{totalTransactions}</Text>
             <Text style={styles.statLabel}>Transactions</Text>
           </Card>
           <Card style={styles.statCard}>
-            <Text style={styles.statValue}>3</Text>
+            <Text style={styles.statValue}>{totalBudgets}</Text>
             <Text style={styles.statLabel}>Budgets</Text>
           </Card>
           <Card style={styles.statCard}>
-            <Text style={styles.statValue}>8</Text>
+            <Text style={styles.statValue}>{totalCategories}</Text>
             <Text style={styles.statLabel}>Categories</Text>
           </Card>
         </View>
@@ -161,6 +194,7 @@ export function ProfileScreen({ navigation }: any) {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
+        {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Made with ❤️ for smart budgeting</Text>
         </View>
