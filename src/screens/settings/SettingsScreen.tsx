@@ -140,6 +140,18 @@ export function SettingsScreen({ navigation }: any) {
           </Text>
         </Card>
       </View>
+
+      {/* Developer Options - Hidden by default */}
+      <View style={[styles.card, { marginTop: Spacing.lg }]}>
+        <Text style={styles.sectionTitle}>🛠️ Developer Options</Text>
+        <TouchableOpacity 
+          style={styles.settingItem}
+          onPress={() => navigation.navigate('AnimationExample')}
+        >
+          <Text style={styles.settingText}>Animation Examples</Text>
+          <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -251,7 +263,23 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: Typography.fontSize.sm,
-    color: Colors.info,
+    color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  settingText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text,
+  },
+  chevron: {
+    fontSize: 24,
+    color: Colors.textSecondary,
   },
 });

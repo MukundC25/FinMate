@@ -21,6 +21,7 @@ export type RootStackParamList = {
   Currency: undefined;
   Insights: undefined;
   Alerts: undefined;
+  AnimationExample: undefined;
 };
 
 export type MainTabParamList = {
