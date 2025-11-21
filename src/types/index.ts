@@ -16,6 +16,9 @@ export interface Transaction {
   bankAccount?: string;
   upiRef?: string;
   notes?: string;
+  isAutoDetected?: boolean;
+  smsId?: string;
+  confidence?: number;
 }
 
 export interface Budget {
@@ -72,4 +75,27 @@ export interface ParsedSMS {
   date: string;
   ref: string;
   category: string;
+  confidence: number;
+  rawSMS: string;
+}
+
+export interface SMSProcessingResult {
+  success: boolean;
+  transaction?: Transaction;
+  error?: string;
+  skipped?: boolean;
+  reason?: string;
+}
+
+export interface SMSPermissionStatus {
+  granted: boolean;
+  canAskAgain: boolean;
+  status: 'granted' | 'denied' | 'undetermined';
+}
+
+export interface ProcessedSMSRecord {
+  smsId: string;
+  hash: string;
+  processedAt: string;
+  transactionId?: string;
 }

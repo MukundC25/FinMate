@@ -12,14 +12,18 @@ import { TransactionDB, BudgetDB } from '../../services/database';
 import { CategoryPieChart } from '../../components/charts/CategoryPieChart';
 import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
 import { SmartSuggestions } from '../../components/common/SmartSuggestions';
+import { useSMSListener } from '../../hooks/useSMSListener';
+import { SMSService } from '../../services/smsService';
 
 export function HomeScreen({ navigation }: any) {
   const { transactions, setTransactions, budgets, setBudgets, currentUserId } = useStore();
   const { formatCurrency } = useCurrencyFormat();
+  const { processSMSManually, isPermissionGranted } = useSMSListener();
   const [totalSpent, setTotalSpent] = useState(0);
   const [totalReceived, setTotalReceived] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [smsProcessing, setSMSProcessing] = useState(false);
   
   // Calculate total monthly budget from all budgets
   const monthlyBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
@@ -152,6 +156,71 @@ export function HomeScreen({ navigation }: any) {
           <Text style={styles.actionButtonText}>📋 View All</Text>
         </TouchableOpacity>
       </View>
+
+      {/* SMS Processing Button */}
+      {isPermissionGranted && (
+        <View style={styles.smsSection}>
+          <TouchableOpacity
+            style={[styles.smsButton, smsProcessing && styles.smsButtonDisabled]}
+            onPress={async () => {
+              if (smsProcessing) return;
+              setSMSProcessing(true);
+              try {
+                console.log('🔄 Manual SMS processing started...');
+                const result = await processSMSManually();
+                if (result.success && 'created' in result && result.created > 0) {
+                  // Reload data to show new transactions
+                  loadData();
+                  console.log(`✅ Found ${result.created} new transactions from SMS`);
+                } else if (result.success && 'created' in result && result.created === 0) {
+                  console.log('📱 No new transactions found in SMS');
+                } else if (!result.success) {
+                  console.log('❌ SMS processing failed:', result.error);
+                }
+              } catch (error) {
+                console.error('❌ SMS processing error:', error);
+              } finally {
+                setSMSProcessing(false);
+              }
+            }}
+            activeOpacity={0.7}
+            disabled={smsProcessing}
+          >
+            <Text style={[styles.smsButtonText, smsProcessing && styles.smsButtonTextDisabled]}>
+              {smsProcessing ? '🔄 Checking SMS...' : '📱 Check SMS for Transactions'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.clearButton, smsProcessing && styles.smsButtonDisabled]}
+            onPress={async () => {
+              setSMSProcessing(true);
+              try {
+                console.log('🗑️ Clearing processed SMS records...');
+                await SMSService.clearProcessedRecords();
+                console.log('✅ Cleared! Now re-scanning ALL SMS from last 30 days...');
+                const result = await processSMSManually();
+                if (result.success && 'created' in result && result.created > 0) {
+                  loadData();
+                  console.log(`✅ Found ${result.created} transactions from ALL SMS`);
+                } else {
+                  console.log('📱 No transactions found in SMS');
+                }
+              } catch (error) {
+                console.error('❌ Error:', error);
+              } finally {
+                setSMSProcessing(false);
+              }
+            }}
+            activeOpacity={0.7}
+            disabled={smsProcessing}
+          >
+            <Text style={[styles.clearButtonText, smsProcessing && styles.smsButtonTextDisabled]}>
+              {smsProcessing ? '🔄 Re-scanning...' : '🔄 Clear & Re-scan ALL SMS'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Recent Transactions */}
       <View style={styles.section}>
@@ -383,5 +452,48 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
+  },
+  smsSection: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  smsButton: {
+    backgroundColor: Colors.surface,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    borderStyle: 'dashed',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  smsButtonDisabled: {
+    opacity: 0.6,
+    borderColor: Colors.textSecondary,
+  },
+  smsButtonText: {
+    color: Colors.primary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  smsButtonTextDisabled: {
+    color: Colors.textSecondary,
+  },
+  clearButton: {
+    backgroundColor: Colors.warning || '#FFA500',
+    borderWidth: 2,
+    borderColor: Colors.warning || '#FFA500',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.sm,
+  },
+  clearButtonText: {
+    color: '#FFFFFF',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
 });

@@ -1,6 +1,6 @@
 // Global State Management with Zustand
 import { create } from 'zustand';
-import { Transaction, Budget, Alert, User } from '../types';
+import { Transaction, Budget, Alert, User, SMSPermissionStatus } from '../types';
 
 interface AppState {
   // User
@@ -29,6 +29,16 @@ interface AppState {
   addAlert: (alert: Alert) => void;
   markAlertAsRead: (id: string) => void;
   deleteAlert: (id: string) => void;
+
+  // SMS State
+  smsPermissionStatus: SMSPermissionStatus | null;
+  setSMSPermissionStatus: (status: SMSPermissionStatus | null) => void;
+  smsProcessingEnabled: boolean;
+  setSMSProcessingEnabled: (enabled: boolean) => void;
+  lastSMSProcessingTime: string | null;
+  setLastSMSProcessingTime: (time: string | null) => void;
+  autoDetectedTransactionCount: number;
+  setAutoDetectedTransactionCount: (count: number) => void;
 
   // UI State
   isLoading: boolean;
@@ -98,6 +108,16 @@ export const useStore = create<AppState>((set) => ({
     set((state) => ({
       alerts: state.alerts.filter((a) => a.id !== id),
     })),
+
+  // SMS State
+  smsPermissionStatus: null,
+  setSMSPermissionStatus: (status) => set({ smsPermissionStatus: status }),
+  smsProcessingEnabled: false,
+  setSMSProcessingEnabled: (enabled) => set({ smsProcessingEnabled: enabled }),
+  lastSMSProcessingTime: null,
+  setLastSMSProcessingTime: (time) => set({ lastSMSProcessingTime: time }),
+  autoDetectedTransactionCount: 0,
+  setAutoDetectedTransactionCount: (count) => set({ autoDetectedTransactionCount: count }),
 
   // UI State
   isLoading: false,

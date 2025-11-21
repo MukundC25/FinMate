@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
+import { PermissionService } from '../../services/permissionService';
+import { useSMSListener } from '../../hooks/useSMSListener';
 
 export function PermissionsScreen({ navigation }: any) {
   const [permissions, setPermissions] = useState({
@@ -10,6 +12,23 @@ export function PermissionsScreen({ navigation }: any) {
     notifications: false,
     storage: false,
   });
+  const [loading, setLoading] = useState(false);
+  const { requestSMSPermission } = useSMSListener();
+
+  // Check existing permissions on mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        const smsStatus = await PermissionService.checkSMSPermission();
+        if (smsStatus.granted) {
+          setPermissions(prev => ({ ...prev, sms: true }));
+        }
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+      }
+    };
+    checkPermissions();
+  }, []);
 
   const permissionItems = [
     {
@@ -35,20 +54,61 @@ export function PermissionsScreen({ navigation }: any) {
     },
   ];
 
-  const handlePermissionToggle = (key: string) => {
-    setPermissions(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+  const handlePermissionToggle = async (key: string) => {
+    if (key === 'sms') {
+      if (!permissions.sms) {
+        // Request actual SMS permission
+        setLoading(true);
+        try {
+          console.log('📱 Requesting SMS permission...');
+          const granted = await Promise.race([
+            requestSMSPermission(),
+            new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10000)) // 10 second timeout
+          ]);
+          
+          console.log('📱 SMS permission result:', granted);
+          setPermissions(prev => ({ ...prev, sms: granted }));
+          
+          if (granted) {
+            Alert.alert(
+              'SMS Permission Granted',
+              'FinMate can now automatically detect transactions from your SMS messages.',
+              [{ text: 'Great!', style: 'default' }]
+            );
+          } else {
+            Alert.alert(
+              'Permission Not Granted',
+              'SMS permission was not granted. You can enable it later in Settings to use automatic transaction detection.',
+              [{ text: 'OK', style: 'default' }]
+            );
+          }
+        } catch (error) {
+          console.error('❌ Error requesting SMS permission:', error);
+          Alert.alert(
+            'Permission Error',
+            'Failed to request SMS permission. You can try again later in Settings.'
+          );
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // Toggle off
+        setPermissions(prev => ({ ...prev, sms: false }));
+      }
+    } else {
+      // Handle other permissions (placeholder for now)
+      setPermissions(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+    }
   };
 
   const handleContinue = () => {
     if (!permissions.sms) {
       Alert.alert(
-        'SMS Permission Required',
-        'SMS access is required to automatically track transactions from bank messages.',
+        'SMS Permission Recommended',
+        'SMS access enables automatic transaction tracking. You can grant this permission later in Settings if you prefer.',
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Grant Access', onPress: () => {
-            setPermissions(prev => ({ ...prev, sms: true }));
-          }},
+          { text: 'Continue Without', onPress: () => navigation.replace('Login') },
+          { text: 'Grant Access', onPress: () => handlePermissionToggle('sms') },
         ]
       );
       return;
@@ -109,8 +169,10 @@ export function PermissionsScreen({ navigation }: any) {
       {/* Actions */}
       <View style={styles.actions}>
         <Button
-          title="Continue"
+          title={loading ? "Requesting Permission..." : "Continue"}
           onPress={handleContinue}
+          loading={loading}
+          disabled={loading}
         />
         <TouchableOpacity
           style={styles.skipButton}

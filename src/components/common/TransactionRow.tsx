@@ -29,12 +29,26 @@ export function TransactionRow({ transaction, onPress }: TransactionRowProps) {
 
       {/* Transaction Details */}
       <View style={styles.details}>
-        <Text style={styles.merchant} numberOfLines={1}>
-          {transaction.merchant}
-        </Text>
-        <Text style={styles.info} numberOfLines={1}>
-          {transaction.upiId} • {transaction.time}
-        </Text>
+        <View style={styles.merchantRow}>
+          <Text style={styles.merchant} numberOfLines={1}>
+            {transaction.merchant}
+          </Text>
+          {transaction.isAutoDetected ? (
+            <View style={styles.autoBadge}>
+              <Text style={styles.autoBadgeText}>AUTO</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.info} numberOfLines={1}>
+            {transaction.upiId || 'N/A'} • {transaction.time}
+          </Text>
+          {transaction.confidence && transaction.isAutoDetected ? (
+            <Text style={styles.confidence} numberOfLines={1}>
+              {' '}• {Math.round(transaction.confidence * 100)}% confidence
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       {/* Amount */}
@@ -73,15 +87,42 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Spacing.sm,
   },
+  merchantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
   merchant: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text,
-    marginBottom: 2,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  autoBadge: {
+    backgroundColor: Colors.primaryLight || '#E3F2FD',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: Spacing.xs,
+  },
+  autoBadgeText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary,
   },
   info: {
     fontSize: Typography.fontSize.sm,
     color: Colors.textSecondary,
+  },
+  confidence: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textTertiary,
+    fontStyle: 'italic',
   },
   amountContainer: {
     alignItems: 'flex-end',

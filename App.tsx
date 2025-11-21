@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -24,7 +23,6 @@ import { BankAccountsScreen } from './src/screens/profile/BankAccountsScreen';
 import { DarkModeScreen } from './src/screens/settings/DarkModeScreen';
 import { NotificationsScreen } from './src/screens/settings/NotificationsScreen';
 import { CurrencyScreen } from './src/screens/settings/CurrencyScreen';
-import { AnimationExampleScreen } from './src/screens/examples/AnimationExampleScreen';
 import { initDatabase } from './src/services/database';
 import { RootStackParamList, MainTabParamList } from './src/navigation/types';
 import { Colors } from './src/constants/theme';
@@ -109,7 +107,6 @@ export default function App() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <ThemeProvider>
         <CurrencyProvider>
@@ -210,6 +207,5 @@ export default function App() {
       </CurrencyProvider>
       </ThemeProvider>
     </SafeAreaProvider>
-    </GestureHandlerRootView>
   );
 }

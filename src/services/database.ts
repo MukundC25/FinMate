@@ -94,6 +94,9 @@ export async function initDatabase(): Promise<void> {
         bankAccount TEXT,
         upiRef TEXT,
         notes TEXT,
+        isAutoDetected INTEGER DEFAULT 0,
+        smsId TEXT,
+        confidence REAL,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (userId) REFERENCES users(id)
       );
@@ -160,8 +163,8 @@ export const TransactionDB = {
     const database = await getDatabase();
     
     await database.runAsync(
-      `INSERT INTO transactions (id, userId, amount, type, merchant, upiId, category, date, time, status, bankAccount, upiRef, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO transactions (id, userId, amount, type, merchant, upiId, category, date, time, status, bankAccount, upiRef, notes, isAutoDetected, smsId, confidence)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         transaction.id,
         transaction.userId,
@@ -176,6 +179,9 @@ export const TransactionDB = {
         transaction.bankAccount || '',
         transaction.upiRef || '',
         transaction.notes || '',
+        transaction.isAutoDetected ? 1 : 0,
+        transaction.smsId || null,
+        transaction.confidence || null,
       ]
     );
   },
