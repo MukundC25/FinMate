@@ -10,13 +10,14 @@ import { getCurrentMonthRange, getCurrentMonthName, getGreeting, getCategorySpen
 import { useCurrencyFormat } from '../../hooks/useCurrencyFormat';
 import { TransactionDB, BudgetDB } from '../../services/database';
 import { CategoryPieChart } from '../../components/charts/CategoryPieChart';
-import { WeeklySpendingChart } from '../../components/charts/WeeklySpendingChart';
+import { SpendingChart } from '../../components/charts/SpendingChart';
+import { TimeframeSelector } from '../../components/ui/TimeframeSelector';
 import { SmartSuggestions } from '../../components/common/SmartSuggestions';
 import { useSMSListener } from '../../hooks/useSMSListener';
 import { SMSService } from '../../services/smsService';
 
 export function HomeScreen({ navigation }: any) {
-  const { transactions, setTransactions, budgets, setBudgets, currentUserId } = useStore();
+  const { transactions, setTransactions, budgets, setBudgets, currentUserId, selectedTimeframe, setSelectedTimeframe } = useStore();
   const { formatCurrency } = useCurrencyFormat();
   const { processSMSManually, isPermissionGranted } = useSMSListener();
   const [totalSpent, setTotalSpent] = useState(0);
@@ -197,7 +198,9 @@ export function HomeScreen({ navigation }: any) {
               setSMSProcessing(true);
               try {
                 console.log('🗑️ Clearing processed SMS records...');
-                await SMSService.clearProcessedRecords();
+                if (currentUserId) {
+                  await SMSService.clearProcessedRecords(currentUserId);
+                }
                 console.log('✅ Cleared! Now re-scanning ALL SMS from last 30 days...');
                 const result = await processSMSManually();
                 if (result.success && 'created' in result && result.created > 0) {
@@ -278,9 +281,15 @@ export function HomeScreen({ navigation }: any) {
 
       {/* Weekly Spending */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Weekly Spending</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Spending Overview</Text>
+          <TimeframeSelector
+            selected={selectedTimeframe}
+            onSelect={setSelectedTimeframe}
+          />
+        </View>
         <Card>
-          <WeeklySpendingChart data={getWeeklySpending(transactions)} />
+          <SpendingChart timeframe={selectedTimeframe} />
         </Card>
       </View>
     </ScrollView>
@@ -417,6 +426,12 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text,
+    marginBottom: Spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: Spacing.md,
   },
   emptyState: {
