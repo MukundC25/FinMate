@@ -51,8 +51,8 @@ export class SMSService {
       }
 
       const {
-        maxCount = 500, // Increased from 100 to 500
-        fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // Increased from 30 to 90 days
+        maxCount = 1000, // Increased to 1000 to fetch all messages
+        fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days lookback
         senders = UPI_SENDERS,
         onProgress
       } = options;
@@ -93,7 +93,7 @@ export class SMSService {
       console.log('📱 Checking for new SMS since:', fromDate.toISOString());
 
       const allMessages = await this.readSMS({
-        maxCount: 500, // Increased from 50
+        maxCount: 1000, // Increased to 1000 to get all messages
         fromDate,
         senders: UPI_SENDERS,
         onProgress

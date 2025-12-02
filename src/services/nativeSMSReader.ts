@@ -40,8 +40,8 @@ export class NativeSMSReader {
 
     try {
       const {
-        maxCount = 500, // Increased from 100 to 500
-        fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // Increased from 30 to 90 days
+        maxCount = 1000, // Increased to 1000 to fetch all messages
+        fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // 90 days lookback
         senders = []
       } = options;
 

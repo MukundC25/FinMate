@@ -85,65 +85,74 @@ export function categorizeTransaction(party: string, upiId: string = ''): string
   const lowerUpiId = upiId.toLowerCase();
   const combined = `${lowerParty} ${lowerUpiId}`;
 
-  // Food delivery
-  if (combined.includes('swiggy') || combined.includes('zomato')) {
+  // Food delivery & restaurants
+  if (combined.includes('swiggy') || combined.includes('zomato') || 
+      combined.includes('dominos') || combined.includes('mcdonald') ||
+      combined.includes('kfc') || combined.includes('pizzahut') ||
+      combined.includes('burgerking') || combined.includes('subway')) {
     return 'Food';
   }
 
-  // Groceries
+  // Groceries & essentials
   if (combined.includes('blinkit') || combined.includes('bigbasket') || 
-      combined.includes('dmart') || combined.includes('grofers')) {
+      combined.includes('dmart') || combined.includes('grofers') ||
+      combined.includes('zepto') || combined.includes('dunzo') ||
+      combined.includes('instamart') || combined.includes('jiomart')) {
     return 'Groceries';
   }
 
-  // Recharge/Bills
+  // Recharge & Bills
   if (combined.includes('airtel') || combined.includes('jio') || 
-      combined.includes('vi') || combined.includes('reliance') ||
-      combined.includes('recharge') || combined.includes('billpay')) {
+      combined.includes('vi') || combined.includes('vodafone') ||
+      combined.includes('idea') || combined.includes('bsnl') ||
+      combined.includes('recharge') || combined.includes('billpay') ||
+      combined.includes('electricity') || combined.includes('gas')) {
     return 'Recharge/Bills';
   }
 
-  // Wallet/Payment apps
-  if (combined.includes('paytm') || combined.includes('phonepe') || 
-      combined.includes('googlepay') || combined.includes('amazonpay')) {
-    return 'Wallet/Recharge';
+  // Travel & transport
+  if (combined.includes('uber') || combined.includes('ola') || 
+      combined.includes('rapido') || combined.includes('irctc') ||
+      combined.includes('makemytrip') || combined.includes('goibibo') ||
+      combined.includes('redbus') || combined.includes('yatra')) {
+    return 'Travel';
   }
 
-  // Merchant payments
-  if (combined.includes('bharatpe') || combined.includes('pinelabs') || 
-      combined.includes('razorpay') || combined.includes('.rzp@')) {
-    return 'P2P / Merchant';
-  }
-
-  // Entertainment
+  // Entertainment & subscriptions
   if (combined.includes('netflix') || combined.includes('spotify') || 
       combined.includes('prime') || combined.includes('hotstar') ||
+      combined.includes('disney') || combined.includes('youtube') ||
       combined.includes('apple') && combined.includes('services')) {
     return 'Entertainment';
   }
 
-  // Shopping
+  // Shopping & e-commerce
   if (combined.includes('amazon') || combined.includes('flipkart') || 
-      combined.includes('myntra') || combined.includes('ajio')) {
+      combined.includes('myntra') || combined.includes('ajio') ||
+      combined.includes('meesho') || combined.includes('snapdeal') ||
+      combined.includes('nykaa') || combined.includes('tatacliq')) {
     return 'Shopping';
   }
 
-  // Mandate/Autopay
-  if (combined.includes('mandate') || combined.includes('autopay')) {
-    return 'Mandate';
-  }
-
-  // Bank transfer
-  if (combined.includes('kotak') || combined.includes('sbi') || 
-      combined.includes('hdfc') || combined.includes('axis') || 
-      combined.includes('icici')) {
-    return 'Bank Transfer';
-  }
-
-  // P2P - Phone numbers or personal UPI IDs
-  if (/^\d+@/.test(lowerUpiId) || lowerUpiId.includes('@yescred') || 
-      lowerUpiId.includes('@paytm') || lowerUpiId.includes('@okaxis')) {
+  // P2P - Phone numbers or personal UPI IDs (check first before wallet)
+  if (/^\d{10}@/.test(lowerUpiId) || lowerUpiId.includes('@yescred') || 
+      lowerUpiId.includes('@okaxis') || lowerUpiId.includes('@ptsbi') ||
+      lowerUpiId.includes('@sbi') || lowerUpiId.includes('@okicici')) {
     return 'P2P';
+  }
+
+  // Wallet/Payment apps (after P2P check)
+  if (combined.includes('paytm') || combined.includes('phonepe') || 
+      combined.includes('googlepay') || combined.includes('amazonpay') ||
+      combined.includes('mobikwik') || combined.includes('freecharge')) {
+    return 'P2P';
+  }
+
+  // Merchant payments
+  if (combined.includes('bharatpe') || combined.includes('pinelabs') || 
+      combined.includes('razorpay') || combined.includes('.rzp@') ||
+      combined.includes('cashfree') || combined.includes('payu')) {
+    return 'Shopping';
   }
 
   return 'Others';

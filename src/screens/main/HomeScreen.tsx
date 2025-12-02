@@ -53,16 +53,6 @@ export function HomeScreen({ navigation }: any) {
       // Load budgets to calculate total budget
       const allBudgets = await BudgetDB.getAll(currentUserId);
       setBudgets(allBudgets);
-
-      const { start, end } = getCurrentMonthRange();
-      const spent = await TransactionDB.getTotalSpent(start, end, currentUserId);
-      setTotalSpent(spent);
-
-      // Calculate total received
-      const received = allTransactions
-        .filter(t => t.type === 'received')
-        .reduce((sum, t) => sum + t.amount, 0);
-      setTotalReceived(received);
       
       setLoading(false);
       setRefreshing(false);
@@ -72,6 +62,20 @@ export function HomeScreen({ navigation }: any) {
       setRefreshing(false);
     }
   };
+
+  // Calculate totals from store transactions (reactive)
+  React.useEffect(() => {
+    const { start, end } = getCurrentMonthRange();
+    const spent = transactions
+      .filter(t => t.type === 'sent' && new Date(t.date) >= new Date(start) && new Date(t.date) <= new Date(end))
+      .reduce((sum, t) => sum + t.amount, 0);
+    setTotalSpent(spent);
+
+    const received = transactions
+      .filter(t => t.type === 'received')
+      .reduce((sum, t) => sum + t.amount, 0);
+    setTotalReceived(received);
+  }, [transactions]);
 
   const onRefresh = () => {
     setRefreshing(true);

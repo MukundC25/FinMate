@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { Colors, Typography, Spacing } from '../../constants/theme';
+import { Colors, Typography, Spacing, BorderRadius, CategoryConfig } from '../../constants/theme';
 
 export const CATEGORIES = [
-  { id: 'all', label: 'All', icon: '📊' },
-  { id: 'Food', label: 'Food', icon: '🍔' },
-  { id: 'Groceries', label: 'Groceries', icon: '🛒' },
-  { id: 'Recharge/Bills', label: 'Bills', icon: '📱' },
-  { id: 'P2P', label: 'P2P', icon: '👥' },
-  { id: 'Travel', label: 'Travel', icon: '✈️' },
-  { id: 'Shopping', label: 'Shopping', icon: '🛍️' },
-  { id: 'Entertainment', label: 'Entertainment', icon: '🎬' },
-  { id: 'Others', label: 'Others', icon: '📦' },
+  { id: 'all', label: 'All', color: Colors.primary },
+  { id: 'Food', label: 'Food', color: CategoryConfig.Food?.color || '#FF6B6B' },
+  { id: 'Groceries', label: 'Groceries', color: CategoryConfig.Groceries?.color || '#4ECDC4' },
+  { id: 'Recharge/Bills', label: 'Bills', color: CategoryConfig['Recharge/Bills']?.color || '#FFD93D' },
+  { id: 'P2P', label: 'P2P', color: CategoryConfig.P2P?.color || '#95E1D3' },
+  { id: 'Travel', label: 'Travel', color: CategoryConfig.Travel?.color || '#A8E6CF' },
+  { id: 'Shopping', label: 'Shopping', color: CategoryConfig.Shopping?.color || '#FFB6B9' },
+  { id: 'Entertainment', label: 'Entertainment', color: CategoryConfig.Entertainment?.color || '#C7CEEA' },
+  { id: 'Others', label: 'Others', color: Colors.textSecondary },
 ];
 
 interface CategoryFilterProps {
@@ -36,26 +36,24 @@ export function CategoryFilter({ selected, onSelect, counts }: CategoryFilterPro
             key={category.id}
             style={[
               styles.chip,
-              isSelected && styles.chipSelected,
+              { borderColor: category.color },
+              isSelected && { backgroundColor: category.color },
             ]}
             onPress={() => onSelect(category.id)}
             activeOpacity={0.7}
           >
-            <Text style={styles.icon}>{category.icon}</Text>
             <Text
               style={[
                 styles.label,
-                isSelected && styles.labelSelected,
+                { color: isSelected ? Colors.surface : category.color },
               ]}
             >
               {category.label}
             </Text>
             {count > 0 && (
-              <View style={[styles.badge, isSelected && styles.badgeSelected]}>
-                <Text style={[styles.badgeText, isSelected && styles.badgeTextSelected]}>
-                  {count}
-                </Text>
-              </View>
+              <Text style={[styles.count, isSelected && styles.countSelected]}>
+                {count}
+              </Text>
             )}
           </TouchableOpacity>
         );
@@ -73,47 +71,26 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.background,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    borderWidth: 2,
     borderColor: Colors.border,
     gap: Spacing.xs,
   },
-  chipSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  icon: {
-    fontSize: 16,
-  },
   label: {
     fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.text,
-  },
-  labelSelected: {
-    color: Colors.surface,
     fontWeight: Typography.fontWeight.semibold,
   },
-  badge: {
-    backgroundColor: Colors.primaryLight || '#E3F2FD',
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 10,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  badgeSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  badgeText: {
+  count: {
     fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
+    fontWeight: Typography.fontWeight.bold,
+    marginLeft: Spacing.xs,
+    opacity: 0.7,
   },
-  badgeTextSelected: {
+  countSelected: {
+    opacity: 1,
     color: Colors.surface,
   },
 });
