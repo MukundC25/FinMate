@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -45,6 +46,11 @@ function MainTabs() {
           paddingBottom: 8,
           paddingTop: 8,
           height: 60,
+          backgroundColor: Colors.surface,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
         },
       }}
     >
@@ -53,6 +59,7 @@ function MainTabs() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🏠</Text>,
         }}
       />
       <Tab.Screen 
@@ -60,6 +67,7 @@ function MainTabs() {
         component={TransactionFeedScreen}
         options={{
           tabBarLabel: 'Transactions',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>💳</Text>,
         }}
       />
       <Tab.Screen 
@@ -67,6 +75,7 @@ function MainTabs() {
         component={BudgetScreen}
         options={{
           tabBarLabel: 'Budgets',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>💰</Text>,
         }}
       />
       <Tab.Screen 
@@ -74,6 +83,7 @@ function MainTabs() {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
         }}
       />
     </Tab.Navigator>
