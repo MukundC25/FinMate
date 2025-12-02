@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
 
 export type Timeframe = 'week' | 'month' | 'year';
@@ -17,39 +17,47 @@ export function TimeframeSelector({ selected, onSelect }: TimeframeSelectorProps
   ];
 
   return (
-    <View style={styles.container}>
-      {options.map((option) => (
-        <TouchableOpacity
-          key={option.value}
-          style={[
-            styles.button,
-            selected === option.value && styles.buttonSelected,
-          ]}
-          onPress={() => onSelect(option.value)}
-          activeOpacity={0.7}
-        >
-          <Text
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={styles.container}>
+        {options.map((option) => (
+          <TouchableOpacity
+            key={option.value}
             style={[
-              styles.buttonText,
-              selected === option.value && styles.buttonTextSelected,
+              styles.button,
+              selected === option.value && styles.buttonSelected,
             ]}
+            onPress={() => onSelect(option.value)}
+            activeOpacity={0.7}
           >
-            {option.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+            <Text
+              style={[
+                styles.buttonText,
+                selected === option.value && styles.buttonTextSelected,
+              ]}
+            >
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingRight: Spacing.md,
+  },
   container: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     padding: 3,
     gap: 3,
-    alignSelf: 'flex-start',
   },
   button: {
     paddingVertical: 6,
