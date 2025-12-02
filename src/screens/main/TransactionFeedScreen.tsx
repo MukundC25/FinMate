@@ -2,19 +2,15 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { TransactionRow } from '../../components/common/TransactionRow';
-import { CategoryFilter } from '../../components/ui/CategoryFilter';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
 import { useStore } from '../../store/useStore';
-import { useTransactionCountByCategory } from '../../store/selectors';
 import { TransactionDB } from '../../services/database';
 import { groupByDate } from '../../utils/helpers';
 
 export function TransactionFeedScreen({ navigation }: any) {
   const { transactions, setTransactions, currentUserId } = useStore();
-  const categoryCounts = useTransactionCountByCategory();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'sent' | 'received'>('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
 
   // Reload when screen comes into focus
@@ -56,10 +52,7 @@ export function TransactionFeedScreen({ navigation }: any) {
     const matchesFilter = 
       selectedFilter === 'all' || t.type === selectedFilter;
     
-    const matchesCategory = 
-      selectedCategory === 'all' || t.category === selectedCategory;
-    
-    return matchesSearch && matchesFilter && matchesCategory;
+    return matchesSearch && matchesFilter;
   });
 
   // Group by date
