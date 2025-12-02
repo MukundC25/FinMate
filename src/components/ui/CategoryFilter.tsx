@@ -65,7 +65,7 @@ export function CategoryFilter({ selected, onSelect, counts }: CategoryFilterPro
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
+    paddingVertical: 4,
     gap: 8,
   },
   chip: {
