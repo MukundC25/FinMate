@@ -31,6 +31,7 @@ export class NativeSMSReader {
     maxCount?: number;
     fromDate?: Date;
     senders?: string[];
+    offset?: number;
   }): Promise<SMSMessage[]> {
     if (!this.isAvailable()) {
       console.warn('SMS reading not available on this platform');
@@ -39,8 +40,8 @@ export class NativeSMSReader {
 
     try {
       const {
-        maxCount = 100,
-        fromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+        maxCount = 500, // Increased from 100 to 500
+        fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // Increased from 30 to 90 days
         senders = []
       } = options;
 

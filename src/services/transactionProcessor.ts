@@ -63,7 +63,7 @@ export class TransactionProcessor {
       await TransactionDB.create({ ...transaction, userId });
 
       // Step 7: Mark SMS as processed
-      await SMSService.markSMSAsProcessed(message, transaction.id);
+      await SMSService.markSMSAsProcessed(message, userId, transaction.id);
 
       console.log('✅ Transaction created from SMS:', transaction.id);
 
