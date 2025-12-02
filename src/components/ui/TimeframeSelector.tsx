@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Typography, Spacing } from '../../constants/theme';
+import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
 
 export type Timeframe = 'week' | 'month' | 'year';
 
@@ -46,28 +46,29 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
+    borderRadius: BorderRadius.lg,
+    padding: 3,
+    gap: 3,
+    alignSelf: 'flex-start',
   },
   button: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 70,
   },
   buttonSelected: {
     backgroundColor: Colors.primary,
   },
   buttonText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
+    fontSize: 13,
+    fontWeight: '500',
     color: Colors.textSecondary,
   },
   buttonTextSelected: {
     color: Colors.surface,
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });

@@ -64,29 +64,29 @@ export function CategoryFilter({ selected, onSelect, counts }: CategoryFilterPro
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    gap: Spacing.xs,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderColor: Colors.border,
-    gap: Spacing.xs,
+    gap: 4,
   },
   label: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    fontSize: 13,
+    fontWeight: '600',
   },
   count: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.bold,
-    marginLeft: Spacing.xs,
+    fontSize: 11,
+    fontWeight: '700',
+    marginLeft: 2,
     opacity: 0.7,
   },
   countSelected: {
