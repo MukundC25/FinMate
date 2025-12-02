@@ -46,6 +46,9 @@ interface AppState {
   
   selectedMonth: string;
   setSelectedMonth: (month: string) => void;
+  
+  selectedTimeframe: 'week' | 'month' | 'year';
+  setSelectedTimeframe: (timeframe: 'week' | 'month' | 'year') => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -125,4 +128,7 @@ export const useStore = create<AppState>((set) => ({
   
   selectedMonth: new Date().toISOString().slice(0, 7), // YYYY-MM format
   setSelectedMonth: (month) => set({ selectedMonth: month }),
+  
+  selectedTimeframe: 'month',
+  setSelectedTimeframe: (timeframe) => set({ selectedTimeframe: timeframe }),
 }));

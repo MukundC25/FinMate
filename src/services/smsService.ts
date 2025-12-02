@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SMSMessage, ProcessedSMSRecord } from '../types';
 import { PermissionService } from './permissionService';
 import { NativeSMSReader } from './nativeSMSReader';
+import { ProcessedSMSDB } from './database';
 
-const PROCESSED_SMS_KEY = '@finmate_processed_sms';
 const LAST_SMS_CHECK_KEY = '@finmate_last_sms_check';
 
 // Bank and UPI service senders to filter SMS
@@ -35,6 +35,7 @@ export class SMSService {
     maxCount?: number;
     fromDate?: Date;
     senders?: string[];
+    onProgress?: (current: number, total: number) => void;
   } = {}): Promise<SMSMessage[]> {
     try {
       // Check permission first
@@ -50,9 +51,10 @@ export class SMSService {
       }
 
       const {
-        maxCount = 100,
-        fromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-        senders = UPI_SENDERS
+        maxCount = 500, // Increased from 100 to 500
+        fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000), // Increased from 30 to 90 days
+        senders = UPI_SENDERS,
+        onProgress
       } = options;
 
       console.log('📱 Reading SMS messages...', {
@@ -61,14 +63,18 @@ export class SMSService {
         senders: senders.length
       });
 
-      // Use native SMS reader (with mock data for testing)
+      // Read all SMS at once (react-native-get-sms-android handles this efficiently)
       const messages = await NativeSMSReader.readSMS({
         maxCount,
         fromDate,
         senders
       });
 
-      console.log(`📱 Found ${messages.length} SMS messages`);
+      if (onProgress) {
+        onProgress(messages.length, messages.length);
+      }
+
+      console.log(`📱 Found ${messages.length} SMS messages in total`);
       return messages;
     } catch (error) {
       console.error('Error reading SMS:', error);
@@ -79,27 +85,29 @@ export class SMSService {
   /**
    * Get new SMS messages since last check
    */
-  static async getNewSMS(): Promise<SMSMessage[]> {
+  static async getNewSMS(userId: string, onProgress?: (current: number, total: number) => void): Promise<SMSMessage[]> {
     try {
       const lastCheckTime = await this.getLastCheckTime();
-      const fromDate = lastCheckTime ? new Date(lastCheckTime) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const fromDate = lastCheckTime ? new Date(lastCheckTime) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
       console.log('📱 Checking for new SMS since:', fromDate.toISOString());
 
       const allMessages = await this.readSMS({
-        maxCount: 50,
+        maxCount: 500, // Increased from 50
         fromDate,
-        senders: UPI_SENDERS
+        senders: UPI_SENDERS,
+        onProgress
       });
 
-      // Filter out already processed messages
-      const processedRecords = await this.getProcessedSMSRecords();
-      const processedHashes = new Set(processedRecords.map(r => r.hash));
-
-      const newMessages = allMessages.filter(msg => {
+      // Filter out already processed messages using database
+      const newMessages: SMSMessage[] = [];
+      for (const msg of allMessages) {
         const hash = this.generateSMSHash(msg);
-        return !processedHashes.has(hash);
-      });
+        const exists = await ProcessedSMSDB.exists(hash);
+        if (!exists) {
+          newMessages.push(msg);
+        }
+      }
 
       // Update last check time
       await this.updateLastCheckTime();
@@ -158,29 +166,22 @@ export class SMSService {
    * Mark SMS as processed
    */
   static async markSMSAsProcessed(
-    message: SMSMessage, 
+    message: SMSMessage,
+    userId: string,
     transactionId?: string
   ): Promise<void> {
     try {
-      const processedRecords = await this.getProcessedSMSRecords();
       const hash = this.generateSMSHash(message);
 
-      const newRecord: ProcessedSMSRecord = {
+      await ProcessedSMSDB.create({
         smsId: message.id,
         hash,
-        processedAt: new Date().toISOString(),
-        transactionId
-      };
-
-      processedRecords.push(newRecord);
-
-      // Keep only last 1000 records to avoid storage bloat
-      const recentRecords = processedRecords.slice(-1000);
-
-      await AsyncStorage.setItem(
-        PROCESSED_SMS_KEY, 
-        JSON.stringify(recentRecords)
-      );
+        body: message.body,
+        address: message.address,
+        date: message.date,
+        transactionId,
+        userId
+      });
 
       console.log('📱 Marked SMS as processed:', message.id);
     } catch (error) {
@@ -191,10 +192,9 @@ export class SMSService {
   /**
    * Get processed SMS records
    */
-  static async getProcessedSMSRecords(): Promise<ProcessedSMSRecord[]> {
+  static async getProcessedSMSRecords(userId: string): Promise<any[]> {
     try {
-      const stored = await AsyncStorage.getItem(PROCESSED_SMS_KEY);
-      return stored ? JSON.parse(stored) : [];
+      return await ProcessedSMSDB.getAllByUser(userId);
     } catch (error) {
       console.error('Error getting processed SMS records:', error);
       return [];
@@ -230,9 +230,9 @@ export class SMSService {
   /**
    * Clear processed SMS records (for testing)
    */
-  static async clearProcessedRecords(): Promise<void> {
+  static async clearProcessedRecords(userId: string): Promise<void> {
     try {
-      await AsyncStorage.removeItem(PROCESSED_SMS_KEY);
+      await ProcessedSMSDB.clear(userId);
       await AsyncStorage.removeItem(LAST_SMS_CHECK_KEY);
       console.log('📱 Cleared processed SMS records');
     } catch (error) {
@@ -243,22 +243,19 @@ export class SMSService {
   /**
    * Get SMS processing statistics
    */
-  static async getProcessingStats(): Promise<{
+  static async getProcessingStats(userId: string): Promise<{
     totalProcessed: number;
     lastProcessedAt: string | null;
     lastCheckAt: string | null;
+    withTransactions: number;
+    withoutTransactions: number;
   }> {
     try {
-      const processedRecords = await this.getProcessedSMSRecords();
+      const stats = await ProcessedSMSDB.getStats(userId);
       const lastCheckTime = await this.getLastCheckTime();
-      
-      const lastProcessed = processedRecords.length > 0 
-        ? processedRecords[processedRecords.length - 1].processedAt
-        : null;
 
       return {
-        totalProcessed: processedRecords.length,
-        lastProcessedAt: lastProcessed,
+        ...stats,
         lastCheckAt: lastCheckTime
       };
     } catch (error) {
@@ -266,7 +263,9 @@ export class SMSService {
       return {
         totalProcessed: 0,
         lastProcessedAt: null,
-        lastCheckAt: null
+        lastCheckAt: null,
+        withTransactions: 0,
+        withoutTransactions: 0
       };
     }
   }

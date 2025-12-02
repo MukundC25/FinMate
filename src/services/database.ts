@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite';
 import { Transaction, Budget, Alert } from '../types';
 
 const DB_NAME = 'finmate.db';
-const DB_VERSION = 2; // Increment this when schema changes
+const DB_VERSION = 3; // Increment this when schema changes (added processed_sms table)
 
 let db: SQLite.SQLiteDatabase | null = null;
 
@@ -49,6 +49,7 @@ async function dropAllTables(database: SQLite.SQLiteDatabase): Promise<void> {
     DROP TABLE IF EXISTS categories;
     DROP TABLE IF EXISTS users;
     DROP TABLE IF EXISTS bank_accounts;
+    DROP TABLE IF EXISTS processed_sms;
   `);
   console.log('✅ Old tables dropped');
 }
@@ -146,6 +147,24 @@ export async function initDatabase(): Promise<void> {
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (userId) REFERENCES users(id)
       );
+      
+      CREATE TABLE IF NOT EXISTS processed_sms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        smsId TEXT NOT NULL UNIQUE,
+        hash TEXT NOT NULL UNIQUE,
+        body TEXT NOT NULL,
+        address TEXT NOT NULL,
+        date INTEGER NOT NULL,
+        transactionId TEXT,
+        processedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        userId TEXT NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users(id),
+        FOREIGN KEY (transactionId) REFERENCES transactions(id)
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_processed_sms_hash ON processed_sms(hash);
+      CREATE INDEX IF NOT EXISTS idx_processed_sms_user ON processed_sms(userId);
+      CREATE INDEX IF NOT EXISTS idx_processed_sms_date ON processed_sms(date);
     `);
 
     console.log('✅ Database initialized successfully');
@@ -475,6 +494,133 @@ export const BankAccountDB = {
     const database = await getDatabase();
     
     await database.runAsync('DELETE FROM bank_accounts WHERE id = ?', [id]);
+  },
+};
+
+/**
+ * Processed SMS CRUD operations for deduplication
+ */
+export const ProcessedSMSDB = {
+  async create(record: {
+    smsId: string;
+    hash: string;
+    body: string;
+    address: string;
+    date: number;
+    transactionId?: string;
+    userId: string;
+  }): Promise<void> {
+    const database = await getDatabase();
+    
+    try {
+      await database.runAsync(
+        `INSERT OR IGNORE INTO processed_sms (smsId, hash, body, address, date, transactionId, userId)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [record.smsId, record.hash, record.body, record.address, record.date, record.transactionId || null, record.userId]
+      );
+    } catch (error: any) {
+      // Ignore duplicate errors
+      if (!error?.toString().includes('UNIQUE constraint')) {
+        throw error;
+      }
+    }
+  },
+
+  async exists(hash: string): Promise<boolean> {
+    const database = await getDatabase();
+    
+    const result = await database.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM processed_sms WHERE hash = ?',
+      [hash]
+    );
+    
+    return (result?.count || 0) > 0;
+  },
+
+  async existsBySmsId(smsId: string): Promise<boolean> {
+    const database = await getDatabase();
+    
+    const result = await database.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM processed_sms WHERE smsId = ?',
+      [smsId]
+    );
+    
+    return (result?.count || 0) > 0;
+  },
+
+  async getByHash(hash: string): Promise<any | null> {
+    const database = await getDatabase();
+    
+    const result = await database.getFirstAsync<any>(
+      'SELECT * FROM processed_sms WHERE hash = ?',
+      [hash]
+    );
+    
+    return result || null;
+  },
+
+  async getAllByUser(userId: string, limit: number = 1000): Promise<any[]> {
+    const database = await getDatabase();
+    
+    const result = await database.getAllAsync<any>(
+      'SELECT * FROM processed_sms WHERE userId = ? ORDER BY processedAt DESC LIMIT ?',
+      [userId, limit]
+    );
+    
+    return result;
+  },
+
+  async getStats(userId: string): Promise<{
+    totalProcessed: number;
+    lastProcessedAt: string | null;
+    withTransactions: number;
+    withoutTransactions: number;
+  }> {
+    const database = await getDatabase();
+    
+    const total = await database.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM processed_sms WHERE userId = ?',
+      [userId]
+    );
+    
+    const withTx = await database.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM processed_sms WHERE userId = ? AND transactionId IS NOT NULL',
+      [userId]
+    );
+    
+    const latest = await database.getFirstAsync<{ processedAt: string }>(
+      'SELECT processedAt FROM processed_sms WHERE userId = ? ORDER BY processedAt DESC LIMIT 1',
+      [userId]
+    );
+    
+    return {
+      totalProcessed: total?.count || 0,
+      lastProcessedAt: latest?.processedAt || null,
+      withTransactions: withTx?.count || 0,
+      withoutTransactions: (total?.count || 0) - (withTx?.count || 0),
+    };
+  },
+
+  async deleteOldRecords(userId: string, keepCount: number = 1000): Promise<void> {
+    const database = await getDatabase();
+    
+    // Keep only the most recent records
+    await database.runAsync(
+      `DELETE FROM processed_sms 
+       WHERE userId = ? AND id NOT IN (
+         SELECT id FROM processed_sms 
+         WHERE userId = ? 
+         ORDER BY processedAt DESC 
+         LIMIT ?
+       )`,
+      [userId, userId, keepCount]
+    );
+  },
+
+  async clear(userId: string): Promise<void> {
+    const database = await getDatabase();
+    
+    await database.runAsync('DELETE FROM processed_sms WHERE userId = ?', [userId]);
   },
 };
 
