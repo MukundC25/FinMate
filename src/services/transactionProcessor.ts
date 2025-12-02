@@ -3,6 +3,7 @@ import { parseSMS, isUPITransaction } from './smsParser';
 import { TransactionDB } from './database';
 import { SMSService } from './smsService';
 import { generateId, getCurrentTime } from '../utils/helpers';
+import { useStore } from '../store/useStore';
 
 export class TransactionProcessor {
   private static readonly MIN_CONFIDENCE_THRESHOLD = 0.6;
@@ -62,7 +63,10 @@ export class TransactionProcessor {
       // Step 6: Save to database
       await TransactionDB.create({ ...transaction, userId });
 
-      // Step 7: Mark SMS as processed
+      // Step 7: Update Zustand store for reactive UI
+      useStore.getState().addTransaction(transaction);
+
+      // Step 8: Mark SMS as processed
       await SMSService.markSMSAsProcessed(message, userId, transaction.id);
 
       console.log('✅ Transaction created from SMS:', transaction.id);
