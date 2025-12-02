@@ -193,6 +193,7 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.xs,
     marginBottom: Spacing.md,
     gap: Spacing.sm,
   },

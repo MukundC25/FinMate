@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle, Animated } from 'react-native';
 import { Colors, Typography, BorderRadius, Spacing } from '../../constants/theme';
 
 interface ButtonProps {
@@ -23,6 +23,24 @@ export function Button({
   style,
   textStyle,
 }: ButtonProps) {
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 50,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+    }).start();
+  };
+
   const buttonStyles = [
     styles.button,
     styles[variant],
@@ -40,16 +58,19 @@ export function Button({
 
   return (
     <TouchableOpacity
-      style={buttonStyles}
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      activeOpacity={1}
     >
-      {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? Colors.textInverse : Colors.primary} />
-      ) : (
-        <Text style={textStyles}>{title}</Text>
-      )}
+      <Animated.View style={[buttonStyles, { transform: [{ scale: scaleAnim }] }]}>
+        {loading ? (
+          <ActivityIndicator color={variant === 'primary' ? Colors.textInverse : Colors.primary} />
+        ) : (
+          <Text style={textStyles}>{title}</Text>
+        )}
+      </Animated.View>
     </TouchableOpacity>
   );
 }
