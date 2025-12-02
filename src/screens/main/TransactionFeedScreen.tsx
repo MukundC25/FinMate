@@ -85,13 +85,6 @@ export function TransactionFeedScreen({ navigation }: any) {
         />
       </View>
 
-      {/* Category Filter */}
-      <CategoryFilter
-        selected={selectedCategory}
-        onSelect={setSelectedCategory}
-        counts={categoryCounts}
-      />
-
       {/* Type Filter Tabs */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
