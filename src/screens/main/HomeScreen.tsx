@@ -47,11 +47,15 @@ export function HomeScreen({ navigation }: any) {
     try {
       console.log('📊 Loading home screen data for user:', currentUserId);
       const allTransactions = await TransactionDB.getAll(currentUserId);
-      console.log(`✅ Loaded ${allTransactions.length} transactions`);
+      console.log(`✅ Loaded ${allTransactions.length} transactions from database`);
+      
+      // Force update store with fresh data
       setTransactions(allTransactions);
+      console.log('✅ Store updated with transactions');
 
       // Load budgets to calculate total budget
       const allBudgets = await BudgetDB.getAll(currentUserId);
+      console.log(`✅ Loaded ${allBudgets.length} budgets`);
       setBudgets(allBudgets);
       
       setLoading(false);

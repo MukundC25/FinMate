@@ -73,6 +73,21 @@ const SMS_PATTERNS: RegexPattern[] = [
     pattern: /A\/C (.*?) Debit Rs\.([\d.]+) for UPI to (.*?) on (\d{2}-\d{2}-\d{2}) Ref (\d+)/i,
     type: 'sent',
   },
+  // Bank of Baroda (BOB) - Debit
+  {
+    pattern: /Rs ?([\d,]+\.?\d*) debited from A\/C (X+\d+) and credited to (.*?) UPI Ref[: ]*(\d+)/i,
+    type: 'sent',
+  },
+  // Bank of Baroda (BOB) - Credit (Format 1: "Dear BOB UPI User, your account is credited INR 30.00 on Date 2025-05-21 12:28:41 PM by UPI Ref No 716448329298")
+  {
+    pattern: /your account is credited INR ([\d,]+\.?\d*) on Date (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M) by UPI Ref No (\d+)/i,
+    type: 'received',
+  },
+  // Bank of Baroda (BOB) - Credit (Format 2: "Your account is credited with 1300.00 on 2025-07-10 11:12:58 AM by UPI Ref No 247178925703")
+  {
+    pattern: /Your account is credited with ([\d,]+\.?\d*) on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M) by UPI Ref No (\d+)/i,
+    type: 'received',
+  },
 ];
 
 /**
@@ -223,14 +238,26 @@ export function parseSMS(smsBody: string): ParsedSMS | null {
             groups[4],
           ];
         } else if (groups.length === 4) {
-          // Pattern: A/C BANK debited by AMOUNT on DATE Refno REF
-          [bankAccount, amount, date, ref] = [
-            groups[0],
-            parseFloat(groups[1]),
-            groups[2],
-            groups[3],
-          ];
-          party = 'Unknown';
+          // Check if it's BOB debit: Rs X debited from A/C BANK and credited to PARTY UPI Ref REF
+          if (smsBody.toLowerCase().includes('debited from a/c') && smsBody.toLowerCase().includes('credited to')) {
+            // BOB debit format: [amount, bankAccount, party, ref]
+            [amount, bankAccount, party, ref] = [
+              parseFloat(groups[0].replace(/,/g, '')),
+              groups[1],
+              groups[2],
+              groups[3],
+            ];
+            date = 'Unknown';
+          } else {
+            // Pattern: A/C BANK debited by AMOUNT on DATE Refno REF
+            [bankAccount, amount, date, ref] = [
+              groups[0],
+              parseFloat(groups[1]),
+              groups[2],
+              groups[3],
+            ];
+            party = 'Unknown';
+          }
         } else {
           continue;
         }
@@ -267,8 +294,17 @@ export function parseSMS(smsBody: string): ParsedSMS | null {
             party = 'Unknown';
           }
         } else if (groups.length === 3) {
-          // Check if it's the simpler SBI format: your A/c X5333-credited by Rs.1.00 on 21-11-25
-          if (smsBody.toLowerCase().includes('credited by rs.')) {
+          // Check if it's BOB credit: your account is credited INR X on Date DATETIME by UPI Ref No REF
+          if (smsBody.toLowerCase().includes('account is credited') || smsBody.toLowerCase().includes('account is credited with')) {
+            // BOB credit format: [amount, date, ref]
+            [amount, date, ref] = [
+              parseFloat(groups[0].replace(/,/g, '')),
+              groups[1],
+              groups[2],
+            ];
+            bankAccount = 'Unknown';
+            party = 'Unknown';
+          } else if (smsBody.toLowerCase().includes('credited by rs.')) {
             // New SBI format without party: [bankAccount, amount, date]
             [bankAccount, amount, date] = [
               groups[0],
