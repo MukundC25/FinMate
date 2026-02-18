@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite';
 import { Transaction, Budget, Alert } from '../types';
 
 const DB_NAME = 'finmate.db';
-const DB_VERSION = 4; // Increment this when schema changes (added family tables)
+const DB_VERSION = 5; // Increment this when schema changes (fixed missing isShared and familyId columns)
 
 let db: SQLite.SQLiteDatabase | null = null;
 

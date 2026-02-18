@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
@@ -119,7 +120,8 @@ export function PermissionsScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper scroll horizontalPadding={false}>
+      <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Grant Permissions</Text>
@@ -186,7 +188,8 @@ export function PermissionsScreen({ navigation }: any) {
       <Text style={styles.footer}>
         💡 You can change these permissions anytime in Settings
       </Text>
-    </View>
+      </View>
+    </ScreenWrapper>
   );
 }
 

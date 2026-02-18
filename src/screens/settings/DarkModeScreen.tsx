@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Spacing, BorderRadius } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -10,7 +11,7 @@ export function DarkModeScreen({ navigation }: any) {
   const colors = useThemedColors();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScreenWrapper horizontalPadding={false} backgroundColor={colors.background}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -74,7 +75,7 @@ export function DarkModeScreen({ navigation }: any) {
           </Text>
         </Card>
       </View>
-    </View>
+    </ScreenWrapper>
   );
 }
 

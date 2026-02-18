@@ -110,6 +110,51 @@ export const Spacing = {
   '5xl': 64,
 };
 
+// Global Layout System - Architecture Stabilization
+export const Layout = {
+  // Screen padding (used by ScreenWrapper)
+  screenPaddingHorizontal: 16, // Spacing.lg
+  screenPaddingVertical: 16, // Spacing.lg
+  
+  // Section spacing (between major sections)
+  sectionSpacing: 24, // Spacing['2xl']
+  sectionSpacingSmall: 16, // Spacing.lg
+  
+  // Card spacing
+  cardSpacing: 12, // Spacing.md
+  cardPadding: 16, // Spacing.lg
+  
+  // Header heights
+  headerHeight: 56,
+  headerPadding: 16, // Spacing.lg
+  
+  // List item spacing
+  listItemSpacing: 12, // Spacing.md
+  listItemPadding: 16, // Spacing.lg
+  
+  // Button spacing
+  buttonSpacing: 12, // Spacing.md
+  buttonPaddingHorizontal: 24, // Spacing['2xl']
+  buttonPaddingVertical: 12, // Spacing.md
+  
+  // Input spacing
+  inputSpacing: 12, // Spacing.md
+  inputPadding: 12, // Spacing.md
+  
+  // Icon sizes
+  iconSizeSmall: 16,
+  iconSizeMedium: 20,
+  iconSizeLarge: 24,
+  iconSizeXLarge: 32,
+  
+  // Tab bar
+  tabBarHeight: 60,
+  tabBarPadding: 8, // Spacing.sm
+  
+  // Safe area bottom spacing for tab screens
+  tabScreenBottomSpacing: 80, // tabBarHeight + extra padding
+};
+
 export const BorderRadius = {
   xs: 4,
   sm: 8,
