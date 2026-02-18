@@ -47,22 +47,16 @@ export function HomeScreen({ navigation }: any) {
     try {
       console.log('📊 Loading home screen data for user:', currentUserId);
       const allTransactions = await TransactionDB.getAll(currentUserId);
-      console.log(`✅ Loaded ${allTransactions.length} transactions`);
+      console.log(`✅ Loaded ${allTransactions.length} transactions from database`);
+      
+      // Force update store with fresh data
       setTransactions(allTransactions);
+      console.log('✅ Store updated with transactions');
 
       // Load budgets to calculate total budget
       const allBudgets = await BudgetDB.getAll(currentUserId);
+      console.log(`✅ Loaded ${allBudgets.length} budgets`);
       setBudgets(allBudgets);
-
-      const { start, end } = getCurrentMonthRange();
-      const spent = await TransactionDB.getTotalSpent(start, end, currentUserId);
-      setTotalSpent(spent);
-
-      // Calculate total received
-      const received = allTransactions
-        .filter(t => t.type === 'received')
-        .reduce((sum, t) => sum + t.amount, 0);
-      setTotalReceived(received);
       
       setLoading(false);
       setRefreshing(false);
@@ -72,6 +66,20 @@ export function HomeScreen({ navigation }: any) {
       setRefreshing(false);
     }
   };
+
+  // Calculate totals from store transactions (reactive)
+  React.useEffect(() => {
+    const { start, end } = getCurrentMonthRange();
+    const spent = transactions
+      .filter(t => t.type === 'sent' && new Date(t.date) >= new Date(start) && new Date(t.date) <= new Date(end))
+      .reduce((sum, t) => sum + t.amount, 0);
+    setTotalSpent(spent);
+
+    const received = transactions
+      .filter(t => t.type === 'received')
+      .reduce((sum, t) => sum + t.amount, 0);
+    setTotalReceived(received);
+  }, [transactions]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -473,42 +481,49 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   smsButton: {
-    backgroundColor: Colors.surface,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    borderStyle: 'dashed',
-    paddingVertical: Spacing.md,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    paddingVertical: 16,
     paddingHorizontal: Spacing.lg,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   smsButtonDisabled: {
     opacity: 0.6,
-    borderColor: Colors.textSecondary,
+    backgroundColor: '#F5F5F5',
   },
   smsButtonText: {
     color: Colors.primary,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
+    fontSize: 15,
+    fontWeight: '600',
   },
   smsButtonTextDisabled: {
     color: Colors.textSecondary,
   },
   clearButton: {
-    backgroundColor: Colors.warning || '#FFA500',
-    borderWidth: 2,
-    borderColor: Colors.warning || '#FFA500',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    backgroundColor: '#FF9500',
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.lg,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: Spacing.sm,
+    shadowColor: '#FF9500',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   clearButtonText: {
     color: '#FFFFFF',
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

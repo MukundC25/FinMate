@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Typography, Spacing } from '../../constants/theme';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
 
 export type Timeframe = 'week' | 'month' | 'year';
 
@@ -17,57 +17,66 @@ export function TimeframeSelector({ selected, onSelect }: TimeframeSelectorProps
   ];
 
   return (
-    <View style={styles.container}>
-      {options.map((option) => (
-        <TouchableOpacity
-          key={option.value}
-          style={[
-            styles.button,
-            selected === option.value && styles.buttonSelected,
-          ]}
-          onPress={() => onSelect(option.value)}
-          activeOpacity={0.7}
-        >
-          <Text
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={styles.container}>
+        {options.map((option) => (
+          <TouchableOpacity
+            key={option.value}
             style={[
-              styles.buttonText,
-              selected === option.value && styles.buttonTextSelected,
+              styles.button,
+              selected === option.value && styles.buttonSelected,
             ]}
+            onPress={() => onSelect(option.value)}
+            activeOpacity={0.7}
           >
-            {option.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+            <Text
+              style={[
+                styles.buttonText,
+                selected === option.value && styles.buttonTextSelected,
+              ]}
+            >
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingRight: Spacing.md,
+  },
   container: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
+    borderRadius: BorderRadius.lg,
+    padding: 3,
+    gap: 3,
   },
   button: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 70,
   },
   buttonSelected: {
     backgroundColor: Colors.primary,
   },
   buttonText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
+    fontSize: 13,
+    fontWeight: '500',
     color: Colors.textSecondary,
   },
   buttonTextSelected: {
     color: Colors.surface,
-    fontWeight: Typography.fontWeight.semibold,
+    fontWeight: '600',
   },
 });

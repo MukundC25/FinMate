@@ -23,6 +23,14 @@ export function BudgetScreen({ navigation }: any) {
     }, [])
   );
 
+  // Reload when transactions change (e.g., after SMS import)
+  useEffect(() => {
+    if (currentUserId && transactions.length > 0) {
+      console.log('📊 Transactions updated, recalculating budget spending...');
+      loadBudgets();
+    }
+  }, [transactions.length, currentUserId]);
+
   const loadBudgets = async () => {
     if (!currentUserId) {
       console.log('⚠️ No user logged in');

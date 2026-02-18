@@ -73,6 +73,21 @@ const SMS_PATTERNS: RegexPattern[] = [
     pattern: /A\/C (.*?) Debit Rs\.([\d.]+) for UPI to (.*?) on (\d{2}-\d{2}-\d{2}) Ref (\d+)/i,
     type: 'sent',
   },
+  // Bank of Baroda (BOB) - Debit
+  {
+    pattern: /Rs ?([\d,]+\.?\d*) debited from A\/C (X+\d+) and credited to (.*?) UPI Ref[: ]*(\d+)/i,
+    type: 'sent',
+  },
+  // Bank of Baroda (BOB) - Credit (Format 1: "Dear BOB UPI User, your account is credited INR 30.00 on Date 2025-05-21 12:28:41 PM by UPI Ref No 716448329298")
+  {
+    pattern: /your account is credited INR ([\d,]+\.?\d*) on Date (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M) by UPI Ref No (\d+)/i,
+    type: 'received',
+  },
+  // Bank of Baroda (BOB) - Credit (Format 2: "Your account is credited with 1300.00 on 2025-07-10 11:12:58 AM by UPI Ref No 247178925703")
+  {
+    pattern: /Your account is credited with ([\d,]+\.?\d*) on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M) by UPI Ref No (\d+)/i,
+    type: 'received',
+  },
 ];
 
 /**
@@ -85,65 +100,74 @@ export function categorizeTransaction(party: string, upiId: string = ''): string
   const lowerUpiId = upiId.toLowerCase();
   const combined = `${lowerParty} ${lowerUpiId}`;
 
-  // Food delivery
-  if (combined.includes('swiggy') || combined.includes('zomato')) {
+  // Food delivery & restaurants
+  if (combined.includes('swiggy') || combined.includes('zomato') || 
+      combined.includes('dominos') || combined.includes('mcdonald') ||
+      combined.includes('kfc') || combined.includes('pizzahut') ||
+      combined.includes('burgerking') || combined.includes('subway')) {
     return 'Food';
   }
 
-  // Groceries
+  // Groceries & essentials
   if (combined.includes('blinkit') || combined.includes('bigbasket') || 
-      combined.includes('dmart') || combined.includes('grofers')) {
+      combined.includes('dmart') || combined.includes('grofers') ||
+      combined.includes('zepto') || combined.includes('dunzo') ||
+      combined.includes('instamart') || combined.includes('jiomart')) {
     return 'Groceries';
   }
 
-  // Recharge/Bills
+  // Recharge & Bills
   if (combined.includes('airtel') || combined.includes('jio') || 
-      combined.includes('vi') || combined.includes('reliance') ||
-      combined.includes('recharge') || combined.includes('billpay')) {
+      combined.includes('vi') || combined.includes('vodafone') ||
+      combined.includes('idea') || combined.includes('bsnl') ||
+      combined.includes('recharge') || combined.includes('billpay') ||
+      combined.includes('electricity') || combined.includes('gas')) {
     return 'Recharge/Bills';
   }
 
-  // Wallet/Payment apps
-  if (combined.includes('paytm') || combined.includes('phonepe') || 
-      combined.includes('googlepay') || combined.includes('amazonpay')) {
-    return 'Wallet/Recharge';
+  // Travel & transport
+  if (combined.includes('uber') || combined.includes('ola') || 
+      combined.includes('rapido') || combined.includes('irctc') ||
+      combined.includes('makemytrip') || combined.includes('goibibo') ||
+      combined.includes('redbus') || combined.includes('yatra')) {
+    return 'Travel';
   }
 
-  // Merchant payments
-  if (combined.includes('bharatpe') || combined.includes('pinelabs') || 
-      combined.includes('razorpay') || combined.includes('.rzp@')) {
-    return 'P2P / Merchant';
-  }
-
-  // Entertainment
+  // Entertainment & subscriptions
   if (combined.includes('netflix') || combined.includes('spotify') || 
       combined.includes('prime') || combined.includes('hotstar') ||
+      combined.includes('disney') || combined.includes('youtube') ||
       combined.includes('apple') && combined.includes('services')) {
     return 'Entertainment';
   }
 
-  // Shopping
+  // Shopping & e-commerce
   if (combined.includes('amazon') || combined.includes('flipkart') || 
-      combined.includes('myntra') || combined.includes('ajio')) {
+      combined.includes('myntra') || combined.includes('ajio') ||
+      combined.includes('meesho') || combined.includes('snapdeal') ||
+      combined.includes('nykaa') || combined.includes('tatacliq')) {
     return 'Shopping';
   }
 
-  // Mandate/Autopay
-  if (combined.includes('mandate') || combined.includes('autopay')) {
-    return 'Mandate';
-  }
-
-  // Bank transfer
-  if (combined.includes('kotak') || combined.includes('sbi') || 
-      combined.includes('hdfc') || combined.includes('axis') || 
-      combined.includes('icici')) {
-    return 'Bank Transfer';
-  }
-
-  // P2P - Phone numbers or personal UPI IDs
-  if (/^\d+@/.test(lowerUpiId) || lowerUpiId.includes('@yescred') || 
-      lowerUpiId.includes('@paytm') || lowerUpiId.includes('@okaxis')) {
+  // P2P - Phone numbers or personal UPI IDs (check first before wallet)
+  if (/^\d{10}@/.test(lowerUpiId) || lowerUpiId.includes('@yescred') || 
+      lowerUpiId.includes('@okaxis') || lowerUpiId.includes('@ptsbi') ||
+      lowerUpiId.includes('@sbi') || lowerUpiId.includes('@okicici')) {
     return 'P2P';
+  }
+
+  // Wallet/Payment apps (after P2P check)
+  if (combined.includes('paytm') || combined.includes('phonepe') || 
+      combined.includes('googlepay') || combined.includes('amazonpay') ||
+      combined.includes('mobikwik') || combined.includes('freecharge')) {
+    return 'P2P';
+  }
+
+  // Merchant payments
+  if (combined.includes('bharatpe') || combined.includes('pinelabs') || 
+      combined.includes('razorpay') || combined.includes('.rzp@') ||
+      combined.includes('cashfree') || combined.includes('payu')) {
+    return 'Shopping';
   }
 
   return 'Others';
@@ -214,14 +238,26 @@ export function parseSMS(smsBody: string): ParsedSMS | null {
             groups[4],
           ];
         } else if (groups.length === 4) {
-          // Pattern: A/C BANK debited by AMOUNT on DATE Refno REF
-          [bankAccount, amount, date, ref] = [
-            groups[0],
-            parseFloat(groups[1]),
-            groups[2],
-            groups[3],
-          ];
-          party = 'Unknown';
+          // Check if it's BOB debit: Rs X debited from A/C BANK and credited to PARTY UPI Ref REF
+          if (smsBody.toLowerCase().includes('debited from a/c') && smsBody.toLowerCase().includes('credited to')) {
+            // BOB debit format: [amount, bankAccount, party, ref]
+            [amount, bankAccount, party, ref] = [
+              parseFloat(groups[0].replace(/,/g, '')),
+              groups[1],
+              groups[2],
+              groups[3],
+            ];
+            date = 'Unknown';
+          } else {
+            // Pattern: A/C BANK debited by AMOUNT on DATE Refno REF
+            [bankAccount, amount, date, ref] = [
+              groups[0],
+              parseFloat(groups[1]),
+              groups[2],
+              groups[3],
+            ];
+            party = 'Unknown';
+          }
         } else {
           continue;
         }
@@ -258,8 +294,17 @@ export function parseSMS(smsBody: string): ParsedSMS | null {
             party = 'Unknown';
           }
         } else if (groups.length === 3) {
-          // Check if it's the simpler SBI format: your A/c X5333-credited by Rs.1.00 on 21-11-25
-          if (smsBody.toLowerCase().includes('credited by rs.')) {
+          // Check if it's BOB credit: your account is credited INR X on Date DATETIME by UPI Ref No REF
+          if (smsBody.toLowerCase().includes('account is credited') || smsBody.toLowerCase().includes('account is credited with')) {
+            // BOB credit format: [amount, date, ref]
+            [amount, date, ref] = [
+              parseFloat(groups[0].replace(/,/g, '')),
+              groups[1],
+              groups[2],
+            ];
+            bankAccount = 'Unknown';
+            party = 'Unknown';
+          } else if (smsBody.toLowerCase().includes('credited by rs.')) {
             // New SBI format without party: [bankAccount, amount, date]
             [bankAccount, amount, date] = [
               groups[0],
