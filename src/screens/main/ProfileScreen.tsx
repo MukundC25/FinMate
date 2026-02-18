@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
 import { useCurrencyFormat } from '../../hooks/useCurrencyFormat';
 import { useStore } from '../../store/useStore';
 import { TransactionDB, BudgetDB, UserDB } from '../../services/database';
 import { AuthService } from '../../services/auth';
+import { Icon, IconName } from '../../components/ui/Icon';
+import { useFamilyStore } from '../../features/family/store/familyStore';
 
 export function ProfileScreen({ navigation }: any) {
   const { transactions, budgets, setTransactions, setBudgets, setCurrentUserId, currentUserId } = useStore();
+  const { clearFamily } = useFamilyStore();
   const { formatCurrency, selectedCurrency } = useCurrencyFormat();
   const [user, setUser] = useState({
     name: 'User',
@@ -73,33 +77,33 @@ export function ProfileScreen({ navigation }: any) {
     {
       section: 'Account',
       items: [
-        { icon: '👤', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
-        { icon: '🎯', label: 'Monthly Budget', value: formatCurrency(budgets.reduce((sum, b) => sum + b.amount, 0)), onPress: () => navigation.navigate('MainTabs', { screen: 'Budgets' }) },
-        { icon: '🏦', label: 'Bank Accounts', onPress: () => navigation.navigate('BankAccounts') },
+        { icon: 'user-circle', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
+        { icon: 'target', label: 'Monthly Budget', value: formatCurrency(budgets.reduce((sum, b) => sum + b.amount, 0)), onPress: () => navigation.navigate('MainTabs', { screen: 'Budgets' }) },
+        { icon: 'building', label: 'Bank Accounts', onPress: () => navigation.navigate('BankAccounts') },
       ],
     },
     {
       section: 'Preferences',
       items: [
-        { icon: '🔔', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
-        { icon: '🏷️', label: 'Categories', onPress: () => Alert.alert('Coming Soon', 'Category management will be available soon!') },
-        { icon: '💱', label: 'Currency', value: `${selectedCurrency.code} (${selectedCurrency.symbol})`, onPress: () => navigation.navigate('Currency') },
+        { icon: 'bell', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
+        { icon: 'filter', label: 'Categories', onPress: () => Alert.alert('Coming Soon', 'Category management will be available soon!') },
+        { icon: 'rupee', label: 'Currency', value: `${selectedCurrency.code} (${selectedCurrency.symbol})`, onPress: () => navigation.navigate('Currency') },
       ],
     },
     {
       section: 'Data',
       items: [
-        { icon: '📊', label: 'Export Data', onPress: () => navigation.navigate('ExportData') },
-        { icon: '📥', label: 'Import Transactions', onPress: () => navigation.navigate('ImportData') },
-        { icon: '🗑️', label: 'Clear All Data', onPress: handleClearData, danger: true },
+        { icon: 'download', label: 'Export Data', onPress: () => navigation.navigate('ExportData') },
+        { icon: 'upload', label: 'Import Transactions', onPress: () => navigation.navigate('ImportData') },
+        { icon: 'trash', label: 'Clear All Data', onPress: handleClearData, danger: true },
       ],
     },
     {
       section: 'About',
       items: [
-        { icon: 'ℹ️', label: 'About FinMate', value: 'v1.0.0', onPress: () => Alert.alert('FinMate', 'Version 1.0.0\n\nYour personal finance manager') },
-        { icon: '📄', label: 'Privacy Policy', onPress: () => Alert.alert('Privacy Policy', 'Your data is stored locally on your device and is never shared.') },
-        { icon: '📧', label: 'Contact Support', onPress: () => Alert.alert('Contact Support', 'Email: support@finmate.app') },
+        { icon: 'info', label: 'About FinMate', value: 'v1.0.0', onPress: () => Alert.alert('FinMate', 'Version 1.0.0\n\nYour personal finance manager') },
+        { icon: 'lock', label: 'Privacy Policy', onPress: () => Alert.alert('Privacy Policy', 'Your data is stored locally on your device and is never shared.') },
+        { icon: 'mail', label: 'Contact Support', onPress: () => Alert.alert('Contact Support', 'Email: support@finmate.app') },
       ],
     },
   ];
@@ -120,6 +124,8 @@ export function ProfileScreen({ navigation }: any) {
               setCurrentUserId(null);
               setTransactions([]);
               setBudgets([]);
+              // Clear family data
+              clearFamily();
               console.log('👋 Logged out successfully');
               navigation.replace('Landing');
             } catch (error) {
@@ -132,7 +138,7 @@ export function ProfileScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper scroll horizontalPadding={false}>
       {/* Profile Header */}
       <View style={styles.header}>
         <View style={styles.avatar}>
@@ -142,7 +148,7 @@ export function ProfileScreen({ navigation }: any) {
         <Text style={styles.email}>{user.email}</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
           <Card style={styles.statCard}>
@@ -174,7 +180,14 @@ export function ProfileScreen({ navigation }: any) {
                   onPress={item.onPress}
                 >
                   <View style={styles.menuItemLeft}>
-                    <Text style={styles.menuIcon}>{item.icon}</Text>
+                    <View style={styles.menuIconContainer}>
+                      <Icon 
+                        name={item.icon as IconName} 
+                        size={20} 
+                        color={item.danger ? Colors.error : Colors.textSecondary}
+                        strokeWidth={2}
+                      />
+                    </View>
                     <Text style={[styles.menuLabel, item.danger && styles.menuLabelDanger]}>
                       {item.label}
                     </Text>
@@ -182,7 +195,7 @@ export function ProfileScreen({ navigation }: any) {
                   {item.value && (
                     <Text style={styles.menuValue}>{item.value}</Text>
                   )}
-                  <Text style={styles.menuArrow}>›</Text>
+                  <Icon name="chevron-right" size={20} color={Colors.textTertiary} />
                 </TouchableOpacity>
               ))}
             </Card>
@@ -196,10 +209,10 @@ export function ProfileScreen({ navigation }: any) {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Made with ❤️ for smart budgeting</Text>
+          <Text style={styles.footerText}>Made for smart budgeting</Text>
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScreenWrapper>
   );
 }
 
@@ -213,6 +226,9 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xl,
     paddingBottom: Spacing.lg,
     backgroundColor: Colors.surface,
+  },
+  content: {
+    padding: Spacing.lg,
   },
   avatar: {
     width: 80,
@@ -284,6 +300,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  menuIconContainer: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
   },
   menuIcon: {
     fontSize: Typography.fontSize.xl,

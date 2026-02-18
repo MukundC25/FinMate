@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
@@ -93,7 +94,7 @@ export function ImportDataScreen({ navigation }: any) {
 2024-11-03,sent,1200,Uber,Travel,completed,Cab fare`;
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper scroll horizontalPadding={false}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -103,8 +104,7 @@ export function ImportDataScreen({ navigation }: any) {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Instructions Card */}
+      {/* Instructions Card */}
         <Card style={styles.instructionsCard}>
           <Text style={styles.sectionTitle}>📥 How to Import</Text>
           <Text style={styles.instructionText}>
@@ -166,8 +166,7 @@ export function ImportDataScreen({ navigation }: any) {
             • Make sure your CSV format matches the sample above
           </Text>
         </Card>
-      </ScrollView>
-    </View>
+    </ScreenWrapper>
   );
 }
 

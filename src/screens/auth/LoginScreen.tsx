@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, Typography, Spacing, Layout, BorderRadius } from '../../constants/theme';
 import { AuthService } from '../../services/auth';
 import { useStore } from '../../store/useStore';
 
@@ -60,10 +61,7 @@ export function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <ScreenWrapper scroll keyboardAvoiding horizontalPadding={false}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.logo}>💰</Text>
@@ -139,7 +137,7 @@ export function LoginScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
@@ -61,7 +62,7 @@ export function EditProfileScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper scroll horizontalPadding={false}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -71,81 +72,81 @@ export function EditProfileScreen({ navigation }: any) {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Avatar Section */}
-        <View style={styles.avatarSection}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{name.charAt(0).toUpperCase() || 'U'}</Text>
+      <View style={styles.content}>
+          {/* Avatar Section */}
+          <View style={styles.avatarSection}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{name.charAt(0).toUpperCase() || 'U'}</Text>
+              </View>
+              <TouchableOpacity style={styles.changePhotoButton}>
+                <Text style={styles.changePhotoText}>Change Photo</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.changePhotoButton}>
-              <Text style={styles.changePhotoText}>Change Photo</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Form */}
-        <Card style={styles.formCard}>
-          <Text style={styles.sectionTitle}>Personal Information</Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your name"
-              placeholderTextColor={Colors.textSecondary}
-            />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter your email"
-              placeholderTextColor={Colors.textSecondary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
+          {/* Form */}
+          <Card style={styles.formCard}>
+            <Text style={styles.sectionTitle}>Personal Information</Text>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Phone Number</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Enter your phone number"
-              placeholderTextColor={Colors.textSecondary}
-              keyboardType="phone-pad"
-            />
-            <Text style={styles.hint}>Optional - for notifications</Text>
-          </View>
-        </Card>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Full Name *</Text>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder="Enter your name"
+                placeholderTextColor={Colors.textSecondary}
+              />
+            </View>
 
-        {/* Info Card */}
-        <Card style={styles.infoCard}>
-          <Text style={styles.infoTitle}>ℹ️ Profile Information</Text>
-          <Text style={styles.infoText}>
-            • Your name will be displayed throughout the app{'\n'}
-            • Email is used for account recovery{'\n'}
-            • Phone number is optional and used for SMS notifications{'\n'}
-            • Profile picture feature coming soon!
-          </Text>
-        </Card>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
 
-        {/* Save Button */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Phone Number</Text>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Enter your phone number"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="phone-pad"
+              />
+              <Text style={styles.hint}>Optional - for notifications</Text>
+            </View>
+          </Card>
+
+          {/* Info Card */}
+          <Card style={styles.infoCard}>
+            <Text style={styles.infoTitle}>ℹ️ Profile Information</Text>
+            <Text style={styles.infoText}>
+              • Your name will be displayed throughout the app{'\n'}
+              • Email is used for account recovery{'\n'}
+              • Phone number is optional and used for SMS notifications{'\n'}
+              • Profile picture feature coming soon!
+            </Text>
+          </Card>
+
+          {/* Save Button */}
         <Button
           title={loading ? "Saving..." : "Save Changes"}
           onPress={handleSave}
           disabled={loading}
           style={styles.saveButton}
         />
-      </ScrollView>
-    </View>
+      </View>
+    </ScreenWrapper>
   );
 }
 
@@ -168,12 +169,12 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
   },
   backButtonText: {
-    ...Typography.body,
+    fontSize: Typography.fontSize.base,
     color: Colors.primary,
     fontWeight: '600',
   },
   headerTitle: {
-    ...Typography.h3,
+    fontSize: Typography.fontSize['2xl'],
     fontWeight: '700',
   },
   placeholder: {
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   changePhotoText: {
-    ...Typography.body,
+    fontSize: Typography.fontSize.base,
     color: Colors.primary,
     fontWeight: '600',
   },
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   sectionTitle: {
-    ...Typography.h4,
+    fontSize: Typography.fontSize.lg,
     fontWeight: '700',
     marginBottom: Spacing.md,
   },
@@ -225,22 +226,22 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   label: {
-    ...Typography.body,
+    fontSize: Typography.fontSize.base,
     fontWeight: '600',
     marginBottom: Spacing.xs,
     color: Colors.text,
   },
   input: {
-    ...Typography.body,
+    fontSize: Typography.fontSize.base,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    backgroundColor: Colors.surface,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     color: Colors.text,
   },
   hint: {
-    ...Typography.caption,
+    fontSize: Typography.fontSize.xs,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
@@ -249,13 +250,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.info + '10',
   },
   infoTitle: {
-    ...Typography.body,
+    fontSize: Typography.fontSize.base,
     fontWeight: '700',
     marginBottom: Spacing.sm,
     color: Colors.info,
   },
   infoText: {
-    ...Typography.caption,
+    fontSize: Typography.fontSize.xs,
     color: Colors.textSecondary,
     lineHeight: 20,
   },

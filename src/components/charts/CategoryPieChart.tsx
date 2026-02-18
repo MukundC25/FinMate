@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Colors, Typography, Spacing, CategoryConfig } from '../../constants/theme';
 import { formatCurrency } from '../../utils/helpers';
+import { Icon, IconName } from '../ui/Icon';
 
 interface CategoryPieChartProps {
   data: { category: string; amount: number; percentage: number }[];
@@ -61,7 +62,13 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
           return (
             <View key={index} style={styles.legendItem}>
               <View style={[styles.legendColor, { backgroundColor: colorScale[index] }]} />
-              <Text style={styles.legendIcon}>{config?.icon || '📌'}</Text>
+              <View style={styles.legendIconContainer}>
+                <Icon 
+                  name={(config?.iconName || 'help-circle') as IconName} 
+                  size={20} 
+                  color={colorScale[index]} 
+                />
+              </View>
               <View style={styles.legendTextContainer}>
                 <Text style={styles.legendCategory}>{item.x}</Text>
                 <Text style={styles.legendAmount}>{formatCurrency(item.y)}</Text>
@@ -111,9 +118,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: Spacing.sm,
   },
-  legendIcon: {
-    fontSize: 20,
+  legendIconContainer: {
     marginRight: Spacing.sm,
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   legendTextContainer: {
     flex: 1,

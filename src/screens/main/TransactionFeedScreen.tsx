@@ -1,17 +1,23 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, RefreshControl, FlatList } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { TransactionRow } from '../../components/common/TransactionRow';
-import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, Typography, Spacing, BorderRadius, Shadows, CategoryConfig } from '../../constants/theme';
 import { useStore } from '../../store/useStore';
 import { TransactionDB } from '../../services/database';
 import { groupByDate } from '../../utils/helpers';
+import { Icon, IconName } from '../../components/ui/Icon';
 
 export function TransactionFeedScreen({ navigation }: any) {
   const { transactions, setTransactions, currentUserId } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'sent' | 'received'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Popular categories for filter chips
+  const categoryFilters = ['All', 'Food', 'Groceries', 'Recharge', 'P2P', 'Shopping', 'Bills', 'Travel'];
 
   // Reload when screen comes into focus
   useFocusEffect(
@@ -42,25 +48,30 @@ export function TransactionFeedScreen({ navigation }: any) {
     loadTransactions();
   };
 
-  // Filter transactions
-  const filteredTransactions = transactions.filter((t) => {
-    const matchesSearch = 
-      t.merchant.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.upiId?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesFilter = 
-      selectedFilter === 'all' || t.type === selectedFilter;
-    
-    return matchesSearch && matchesFilter;
-  });
+  // Filter transactions - memoized for performance
+  const filteredTransactions = React.useMemo(() => {
+    return transactions.filter((t) => {
+      const matchesSearch = 
+        t.merchant.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.upiId?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesFilter = 
+        selectedFilter === 'all' || t.type === selectedFilter;
+      
+      const matchesCategory = 
+        selectedCategory === 'All' || t.category === selectedCategory;
+      
+      return matchesSearch && matchesFilter && matchesCategory;
+    });
+  }, [transactions, searchQuery, selectedFilter, selectedCategory]);
 
-  // Group by date
-  const groupedTransactions = groupByDate(filteredTransactions);
-  const dates = Object.keys(groupedTransactions).sort((a, b) => b.localeCompare(a));
+  // Group by date - memoized for performance
+  const groupedTransactions = React.useMemo(() => groupByDate(filteredTransactions), [filteredTransactions]);
+  const dates = React.useMemo(() => Object.keys(groupedTransactions).sort((a, b) => b.localeCompare(a)), [groupedTransactions]);
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper scroll={false} horizontalPadding={false}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Transactions</Text>
@@ -106,6 +117,40 @@ export function TransactionFeedScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
+      {/* Category Filter Chips */}
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoryScrollView}
+        contentContainerStyle={styles.categoryContainer}
+      >
+        {categoryFilters.map((category) => {
+          const isSelected = selectedCategory === category;
+          const categoryInfo = category !== 'All' ? CategoryConfig[category as keyof typeof CategoryConfig] : null;
+          
+          return (
+            <TouchableOpacity
+              key={category}
+              style={[styles.categoryChip, isSelected && styles.categoryChipActive]}
+              onPress={() => setSelectedCategory(category)}
+              activeOpacity={0.7}
+            >
+              {categoryInfo && (
+                <Icon 
+                  name={(categoryInfo.iconName || 'help') as IconName} 
+                  size={18} 
+                  color={isSelected ? Colors.textInverse : categoryInfo.color}
+                  strokeWidth={2.5}
+                />
+              )}
+              <Text style={[styles.categoryChipText, isSelected && styles.categoryChipTextActive]}>
+                {category}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       {/* Transaction List */}
       <ScrollView 
         style={styles.list} 
@@ -138,7 +183,7 @@ export function TransactionFeedScreen({ navigation }: any) {
           </View>
         )}
       </ScrollView>
-    </View>
+    </ScreenWrapper>
   );
 }
 
@@ -149,7 +194,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: Spacing.lg,
-    paddingTop: Spacing.xl,
     backgroundColor: Colors.background,
   },
   title: {
@@ -201,6 +245,42 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   filterTextActive: {
+    color: Colors.textInverse,
+  },
+  categoryScrollView: {
+    marginBottom: 0,
+  },
+  categoryContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
+    flexDirection: 'row',
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 6,
+  },
+  categoryChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+    ...Shadows.sm,
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text,
+    lineHeight: 16,
+  },
+  categoryChipTextActive: {
     color: Colors.textInverse,
   },
   list: {

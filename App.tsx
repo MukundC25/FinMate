@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SplashScreen } from './src/screens/auth/SplashScreen';
 import { LandingScreen } from './src/screens/auth/LandingScreen';
 import { PermissionsScreen } from './src/screens/auth/PermissionsScreen';
@@ -24,16 +23,23 @@ import { BankAccountsScreen } from './src/screens/profile/BankAccountsScreen';
 import { DarkModeScreen } from './src/screens/settings/DarkModeScreen';
 import { NotificationsScreen } from './src/screens/settings/NotificationsScreen';
 import { CurrencyScreen } from './src/screens/settings/CurrencyScreen';
+import { FamilyHomeScreen } from './src/features/family/screens/FamilyHomeScreen';
+import { CreateFamilyScreen } from './src/features/family/screens/CreateFamilyScreen';
+import { JoinFamilyScreen } from './src/features/family/screens/JoinFamilyScreen';
+import { FamilyAnalyticsScreen } from './src/features/family/screens/FamilyAnalyticsScreen';
 import { initDatabase } from './src/services/database';
 import { RootStackParamList, MainTabParamList } from './src/navigation/types';
 import { Colors } from './src/constants/theme';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { CurrencyProvider } from './src/contexts/CurrencyContext';
+import { Icon } from './src/components/ui/Icon';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -43,9 +49,9 @@ function MainTabs() {
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: Colors.border,
-          paddingBottom: 8,
+          paddingBottom: insets.bottom,
           paddingTop: 8,
-          height: 60,
+          height: 60 + insets.bottom,
           backgroundColor: Colors.surface,
         },
         tabBarLabelStyle: {
@@ -59,7 +65,7 @@ function MainTabs() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🏠</Text>,
+          tabBarIcon: ({ color }) => <Icon name="home" size={24} color={color} />,
         }}
       />
       <Tab.Screen 
@@ -67,7 +73,7 @@ function MainTabs() {
         component={TransactionFeedScreen}
         options={{
           tabBarLabel: 'Transactions',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>💳</Text>,
+          tabBarIcon: ({ color }) => <Icon name="list" size={24} color={color} />,
         }}
       />
       <Tab.Screen 
@@ -75,7 +81,15 @@ function MainTabs() {
         component={BudgetScreen}
         options={{
           tabBarLabel: 'Budgets',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>💰</Text>,
+          tabBarIcon: ({ color }) => <Icon name="wallet" size={24} color={color} />,
+        }}
+      />
+      <Tab.Screen 
+        name="Family" 
+        component={FamilyHomeScreen}
+        options={{
+          tabBarLabel: 'Family',
+          tabBarIcon: ({ color }) => <Icon name="users" size={24} color={color} />,
         }}
       />
       <Tab.Screen 
@@ -83,7 +97,7 @@ function MainTabs() {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
+          tabBarIcon: ({ color }) => <Icon name="user" size={24} color={color} />,
         }}
       />
     </Tab.Navigator>
@@ -207,6 +221,27 @@ export default function App() {
           <Stack.Screen 
             name="Currency" 
             component={CurrencyScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="CreateFamily" 
+            component={CreateFamilyScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="JoinFamily" 
+            component={JoinFamilyScreen}
+            options={{ 
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="FamilyAnalytics" 
+            component={FamilyAnalyticsScreen}
             options={{ 
               animation: 'slide_from_right',
             }}

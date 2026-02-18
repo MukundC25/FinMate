@@ -3,13 +3,14 @@ import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native
 import { Transaction } from '../../types';
 import { Colors, Typography, Spacing, BorderRadius, CategoryConfig } from '../../constants/theme';
 import { useCurrencyFormat } from '../../hooks/useCurrencyFormat';
+import { Icon, IconName } from '../ui/Icon';
 
 interface TransactionRowProps {
   transaction: Transaction;
   onPress?: () => void;
 }
 
-export function TransactionRow({ transaction, onPress }: TransactionRowProps) {
+export const TransactionRow = React.memo(({ transaction, onPress }: TransactionRowProps) => {
   const { formatCurrency } = useCurrencyFormat();
   const isDebit = transaction.type === 'sent';
   const categoryInfo = CategoryConfig[transaction.category as keyof typeof CategoryConfig] || CategoryConfig.Others;
@@ -41,9 +42,12 @@ export function TransactionRow({ transaction, onPress }: TransactionRowProps) {
       <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
       {/* Category Icon */}
       <View style={[styles.iconContainer, { backgroundColor: categoryInfo.color + '20' }]}>
-        <Text style={[styles.iconText, { color: categoryInfo.color }]}>
-          {transaction.category.charAt(0)}
-        </Text>
+        <Icon 
+          name={(categoryInfo.iconName || 'help') as IconName} 
+          size={20} 
+          color={categoryInfo.color}
+          strokeWidth={2.5}
+        />
       </View>
 
       {/* Transaction Details */}
@@ -80,7 +84,7 @@ export function TransactionRow({ transaction, onPress }: TransactionRowProps) {
       </Animated.View>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

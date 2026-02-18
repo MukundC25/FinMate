@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
-
-const { width, height } = Dimensions.get('window');
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
+import { Colors, Typography, Spacing, Layout, BorderRadius } from '../../constants/theme';
 
 export function LandingScreen({ navigation }: any) {
   return (
-    <View style={styles.container}>
+    <ScreenWrapper edges={['top', 'bottom']} horizontalPadding={false}>
+      <View style={styles.container}>
       {/* Hero Section */}
       <View style={styles.hero}>
         <Text style={styles.logo}>💰</Text>
@@ -51,16 +51,17 @@ export function LandingScreen({ navigation }: any) {
       <Text style={styles.footer}>
         By continuing, you agree to our Terms & Privacy Policy
       </Text>
-    </View>
+      </View>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
     justifyContent: 'space-between',
-    paddingVertical: Spacing.xl * 2,
+    paddingHorizontal: Layout.screenPaddingHorizontal,
+    paddingVertical: Layout.sectionSpacing,
   },
   hero: {
     alignItems: 'center',
