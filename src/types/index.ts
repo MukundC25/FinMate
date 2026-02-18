@@ -19,6 +19,9 @@ export interface Transaction {
   isAutoDetected?: boolean;
   smsId?: string;
   confidence?: number;
+  isShared?: boolean;
+  familyId?: string;
+  syncedAt?: string;
 }
 
 export interface Budget {
@@ -29,6 +32,7 @@ export interface Budget {
   period: 'daily' | 'weekly' | 'monthly' | 'yearly';
   startDate: string;
   endDate: string;
+  syncedAt?: string;
 }
 
 export interface Category {

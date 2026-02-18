@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite';
 import { Transaction, Budget, Alert } from '../types';
 
 const DB_NAME = 'finmate.db';
-const DB_VERSION = 5; // Increment this when schema changes (fixed missing isShared and familyId columns)
+const DB_VERSION = 6; // Increment this when schema changes (added syncedAt columns for Supabase sync)
 
 let db: SQLite.SQLiteDatabase | null = null;
 
@@ -104,6 +104,7 @@ export async function initDatabase(): Promise<void> {
         isShared INTEGER DEFAULT 0,
         familyId TEXT,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        syncedAt TEXT,
         FOREIGN KEY (userId) REFERENCES users(id),
         FOREIGN KEY (familyId) REFERENCES families(id)
       );
@@ -118,6 +119,7 @@ export async function initDatabase(): Promise<void> {
         startDate TEXT NOT NULL,
         endDate TEXT NOT NULL,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        syncedAt TEXT,
         FOREIGN KEY (userId) REFERENCES users(id),
         UNIQUE(userId, category)
       );
@@ -316,6 +318,15 @@ export const TransactionDB = {
     await database.runAsync('DELETE FROM transactions');
   },
 
+  async markAsSynced(id: string): Promise<void> {
+    const database = await getDatabase();
+    
+    await database.runAsync(
+      'UPDATE transactions SET syncedAt = ? WHERE id = ?',
+      [new Date().toISOString(), id]
+    );
+  },
+
   async getTotalSpent(startDate: string, endDate: string, userId: string): Promise<number> {
     const database = await getDatabase();
     
@@ -411,6 +422,25 @@ export const BudgetDB = {
     const database = await getDatabase();
     
     await database.runAsync('DELETE FROM budgets');
+  },
+
+  async markAsSynced(id: string): Promise<void> {
+    const database = await getDatabase();
+    
+    await database.runAsync(
+      'UPDATE budgets SET syncedAt = ? WHERE id = ?',
+      [new Date().toISOString(), id]
+    );
+  },
+
+  async getById(id: string): Promise<Budget | null> {
+    const database = await getDatabase();
+    
+    const result = await database.getFirstAsync<Budget>(
+      'SELECT * FROM budgets WHERE id = ?',
+      [id]
+    );
+    return result || null;
   },
 };
 
