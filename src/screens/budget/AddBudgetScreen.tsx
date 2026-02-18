@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Icon, IconName } from '../../components/ui/Icon';
 import { Colors, Typography, Spacing, BorderRadius, CategoryConfig } from '../../constants/theme';
 import { Budget } from '../../types';
 import { formatCurrency, generateId, getCurrentMonthRange } from '../../utils/helpers';
@@ -156,7 +157,11 @@ export function AddBudgetScreen({ navigation }: any) {
                   onPress={() => setSelectedCategory(category)}
                 >
                   <View style={[styles.categoryIconContainer, { backgroundColor: info.color + '20' }]}>
-                    <Text style={styles.categoryIcon}>{info.icon}</Text>
+                    <Icon 
+                      name={(info.iconName || 'help-circle') as IconName} 
+                      size={24} 
+                      color={info.color} 
+                    />
                   </View>
                   <Text style={[styles.categoryName, isSelected && styles.categoryNameSelected]}>
                     {category}
@@ -179,7 +184,11 @@ export function AddBudgetScreen({ navigation }: any) {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Category</Text>
               <View style={styles.summaryCategory}>
-                <Text style={styles.summaryCategoryIcon}>{categoryInfo?.icon}</Text>
+                <Icon 
+                  name={(categoryInfo?.iconName || 'help-circle') as IconName} 
+                  size={20} 
+                  color={categoryInfo?.color || Colors.textSecondary} 
+                />
                 <Text style={styles.summaryValue}>{selectedCategory}</Text>
               </View>
             </View>

@@ -21,11 +21,15 @@ export type RootStackParamList = {
   Currency: undefined;
   Insights: undefined;
   Alerts: undefined;
+  CreateFamily: undefined;
+  JoinFamily: undefined;
+  FamilyAnalytics: undefined;
 };
 
 export type MainTabParamList = {
   Home: undefined;
   Feed: undefined;
   Budgets: undefined;
+  Family: undefined;
   Profile: undefined;
 };

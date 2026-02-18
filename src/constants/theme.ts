@@ -1,4 +1,4 @@
-// Design System - Colors, Typography, Spacing
+// Design System - Modern Fintech Grade
 
 export const Colors = {
   // Primary Brand Colors
@@ -27,11 +27,12 @@ export const Colors = {
   health: '#10B981',
   education: '#6366F1',
   
-  // Neutral Colors
-  background: '#FFFFFF',
-  surface: '#F9FAFB',
+  // Neutral Colors - Enhanced
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
   card: '#FFFFFF',
   border: '#E5E7EB',
+  borderLight: '#F3F4F6',
   divider: '#E5E7EB',
   
   // Text Colors
@@ -43,6 +44,18 @@ export const Colors = {
   // Overlay
   overlay: 'rgba(0, 0, 0, 0.5)',
   overlayLight: 'rgba(0, 0, 0, 0.3)',
+  
+  // Gradient Colors
+  gradientStart: '#0B6E6F',
+  gradientEnd: '#00A79D',
+};
+
+export const Gradients = {
+  primary: ['#0B6E6F', '#00A79D'],
+  success: ['#16A34A', '#4ADE80'],
+  error: ['#DC2626', '#F87171'],
+  subtle: ['#F9FAFB', '#FFFFFF'],
+  card: ['#FFFFFF', '#F9FAFB'],
 };
 
 export const Typography = {
@@ -54,16 +67,18 @@ export const Typography = {
     bold: 'System',
   },
   
-  // Font Sizes
+  // Enhanced Font Sizes - Fintech Scale
   fontSize: {
+    micro: 10,
     xs: 12,
     sm: 14,
     base: 16,
     lg: 18,
     xl: 20,
     '2xl': 24,
-    '3xl': 30,
-    '4xl': 36,
+    '3xl': 28,
+    '4xl': 32,
+    '5xl': 40,
   },
   
   // Line Heights
@@ -73,84 +88,110 @@ export const Typography = {
     relaxed: 1.75,
   },
   
-  // Font Weights (using numeric values for React Native compatibility)
+  // Font Weights
   fontWeight: {
     regular: '400' as '400',
     medium: '500' as '500',
     semibold: '600' as '600',
     bold: '700' as '700',
+    extrabold: '800' as '800',
   },
 };
 
 export const Spacing = {
   xs: 4,
   sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  '2xl': 48,
-  '3xl': 64,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  '2xl': 24,
+  '3xl': 32,
+  '4xl': 48,
+  '5xl': 64,
 };
 
 export const BorderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  '2xl': 24,
   full: 9999,
 };
 
 export const Shadows = {
-  sm: {
+  none: {
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  xs: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
-  md: {
+  sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   lg: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  xl: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 24,
+    elevation: 8,
   },
 };
 
 export const CategoryConfig = {
   // Expense categories
-  Food: { color: Colors.food, icon: '🍔' },
-  Groceries: { color: Colors.groceries, icon: '🛒' },
-  Recharge: { color: Colors.recharge, icon: '📱' },
-  'Recharge/Bills': { color: Colors.recharge, icon: '📱' },
-  P2P: { color: Colors.p2p, icon: '👥' },
-  Bills: { color: Colors.bills, icon: '💳' },
-  Entertainment: { color: Colors.entertainment, icon: '🎬' },
-  Travel: { color: Colors.travel, icon: '🚗' },
-  Shopping: { color: Colors.shopping, icon: '🛍️' },
-  Health: { color: Colors.health, icon: '❤️' },
-  Education: { color: Colors.education, icon: '📚' },
-  Income: { color: Colors.success, icon: '💰' },
-  Others: { color: Colors.textSecondary, icon: '📌' },
-  'Wallet/Recharge': { color: Colors.recharge, icon: '👛' },
-  'P2P / Merchant': { color: Colors.p2p, icon: '👥' },
-  Merchant: { color: Colors.textSecondary, icon: '🏪' },
-  'Bank Transfer': { color: Colors.primary, icon: '🏦' },
-  Mandate: { color: Colors.info, icon: '🔄' },
-  Uncategorized: { color: Colors.textTertiary, icon: '❓' },
+  Food: { color: Colors.food, icon: '🍔', iconName: 'food' },
+  Groceries: { color: Colors.groceries, icon: '🛒', iconName: 'groceries' },
+  Recharge: { color: Colors.recharge, icon: '📱', iconName: 'smartphone' },
+  'Recharge/Bills': { color: Colors.recharge, icon: '📱', iconName: 'smartphone' },
+  P2P: { color: Colors.p2p, icon: '👥', iconName: 'users' },
+  Bills: { color: Colors.bills, icon: '🧾', iconName: 'receipt' },
+  Entertainment: { color: Colors.entertainment, icon: '🎬', iconName: 'entertainment' },
+  Travel: { color: Colors.travel, icon: '✈️', iconName: 'travel' },
+  Shopping: { color: Colors.shopping, icon: '🛍️', iconName: 'shopping-bag' },
+  Health: { color: Colors.health, icon: '❤️', iconName: 'health' },
+  Education: { color: Colors.education, icon: '🎓', iconName: 'education' },
+  Income: { color: Colors.success, icon: '💰', iconName: 'income' },
+  Others: { color: Colors.textSecondary, icon: '📌', iconName: 'others' },
+  'Wallet/Recharge': { color: Colors.recharge, icon: '👛', iconName: 'wallet' },
+  'P2P / Merchant': { color: Colors.p2p, icon: '👥', iconName: 'users' },
+  Merchant: { color: Colors.textSecondary, icon: '🏪', iconName: 'store' },
+  'Bank Transfer': { color: Colors.primary, icon: '🏦', iconName: 'building' },
+  Mandate: { color: Colors.info, icon: '🔄', iconName: 'repeat' },
+  Uncategorized: { color: Colors.textTertiary, icon: '❓', iconName: 'help' },
   
   // Income categories
-  Salary: { color: '#10B981', icon: '💼' },
-  Freelance: { color: '#8B5CF6', icon: '💻' },
-  Investment: { color: '#F59E0B', icon: '📈' },
-  Gift: { color: '#EC4899', icon: '🎁' },
-  Refund: { color: '#06B6D4', icon: '↩️' },
-  Other: { color: Colors.textSecondary, icon: '💵' },
+  Salary: { color: '#10B981', icon: '💼', iconName: 'briefcase' },
+  Freelance: { color: '#8B5CF6', icon: '💻', iconName: 'laptop' },
+  Investment: { color: '#F59E0B', icon: '📈', iconName: 'trending-up' },
+  Gift: { color: '#EC4899', icon: '🎁', iconName: 'gift' },
+  Refund: { color: '#06B6D4', icon: '↩️', iconName: 'refund' },
+  Other: { color: Colors.textSecondary, icon: '💵', iconName: 'banknote' },
 };

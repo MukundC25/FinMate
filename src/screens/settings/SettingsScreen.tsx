@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
 
@@ -24,7 +25,7 @@ export function SettingsScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper scroll horizontalPadding={false}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -140,7 +141,7 @@ export function SettingsScreen({ navigation }: any) {
           </Text>
         </Card>
       </View>
-    </View>
+    </ScreenWrapper>
   );
 }
 

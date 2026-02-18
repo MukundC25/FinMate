@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, RefreshControl, TouchableOpacity, Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { TransactionRow } from '../../components/common/TransactionRow';
-import { Colors, Typography, Spacing } from '../../constants/theme';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useStore } from '../../store/useStore';
 import { getCurrentMonthRange, getCurrentMonthName, getGreeting, getCategorySpending, getWeeklySpending } from '../../utils/helpers';
 import { useCurrencyFormat } from '../../hooks/useCurrencyFormat';
@@ -15,6 +16,7 @@ import { TimeframeSelector } from '../../components/ui/TimeframeSelector';
 import { SmartSuggestions } from '../../components/common/SmartSuggestions';
 import { useSMSListener } from '../../hooks/useSMSListener';
 import { SMSService } from '../../services/smsService';
+import { Icon } from '../../components/ui/Icon';
 
 export function HomeScreen({ navigation }: any) {
   const { transactions, setTransactions, budgets, setBudgets, currentUserId, selectedTimeframe, setSelectedTimeframe } = useStore();
@@ -86,61 +88,64 @@ export function HomeScreen({ navigation }: any) {
     loadData();
   };
 
-  const budgetLeft = monthlyBudget - totalSpent;
-  const budgetProgress = (totalSpent / monthlyBudget) * 100;
-  const recentTransactions = transactions.slice(0, 5);
+  const budgetLeft = React.useMemo(() => monthlyBudget - totalSpent, [monthlyBudget, totalSpent]);
+  const budgetProgress = React.useMemo(() => (totalSpent / monthlyBudget) * 100, [totalSpent, monthlyBudget]);
+  const recentTransactions = React.useMemo(() => transactions.slice(0, 5), [transactions]);
 
   return (
-    <ScrollView
-      style={styles.container} 
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
-      }
+    <ScreenWrapper
+      scroll
+      horizontalPadding={false}
+      scrollViewProps={{
+        refreshControl: <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />,
+      }}
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>{getGreeting()}! 👋</Text>
+        <Text style={styles.greeting}>{getGreeting()}!</Text>
         <Text style={styles.subtitle}>Here's your spending summary</Text>
       </View>
 
       {/* Summary Card */}
-      <Card style={styles.summaryCard} variant="elevated">
-        <View style={styles.summaryHeader}>
-          <View>
-            <Text style={styles.summaryLabel}>This month spent</Text>
-            <Text style={styles.summaryAmount}>{formatCurrency(totalSpent)}</Text>
-          </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{getCurrentMonthName()}</Text>
-          </View>
-        </View>
-
-        <View style={styles.budgetInfo}>
-          <View>
-            <Text style={styles.budgetLabel}>Budget left</Text>
-            <Text style={[styles.budgetAmount, budgetLeft < 0 && styles.overBudget]}>
-              {formatCurrency(budgetLeft)}
-            </Text>
-          </View>
-          <View style={styles.progressInfo}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${Math.min(budgetProgress, 100)}%` }]} />
+      <View>
+        <Card style={styles.summaryCard} variant="elevated">
+          <View style={styles.summaryHeader}>
+            <View>
+              <Text style={styles.summaryLabel}>This month spent</Text>
+              <Text style={styles.summaryAmount}>{formatCurrency(totalSpent)}</Text>
             </View>
-            <Text style={styles.progressText}>
-              {budgetProgress.toFixed(0)}% of {formatCurrency(monthlyBudget)}
-            </Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{getCurrentMonthName()}</Text>
+            </View>
           </View>
-        </View>
 
-        {budgetLeft < 0 && (
-          <View style={styles.alert}>
-            <Text style={styles.alertText}>
-              ⚠️ You're over budget by {formatCurrency(Math.abs(budgetLeft))}
-            </Text>
+          <View style={styles.budgetInfo}>
+            <View>
+              <Text style={styles.budgetLabel}>Budget left</Text>
+              <Text style={[styles.budgetAmount, budgetLeft < 0 && styles.overBudget]}>
+                {formatCurrency(budgetLeft)}
+              </Text>
+            </View>
+            <View style={styles.progressInfo}>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${Math.min(budgetProgress, 100)}%` }]} />
+              </View>
+              <Text style={styles.progressText}>
+                {budgetProgress.toFixed(0)}% of {formatCurrency(monthlyBudget)}
+              </Text>
+            </View>
           </View>
-        )}
-      </Card>
+
+          {budgetLeft < 0 && (
+            <View style={styles.alert}>
+              <Icon name="alert" size={16} color={Colors.textInverse} style={{ marginRight: 8 }} />
+              <Text style={styles.alertText}>
+                You're over budget by {formatCurrency(Math.abs(budgetLeft))}
+              </Text>
+            </View>
+          )}
+        </Card>
+      </View>
 
       {/* Quick Actions */}
       <View style={styles.quickActions}>
@@ -152,7 +157,10 @@ export function HomeScreen({ navigation }: any) {
           }}
           activeOpacity={0.7}
         >
-          <Text style={styles.actionButtonText}>➕ Add Expense</Text>
+          <View style={styles.actionButtonContent}>
+            <Icon name="plus" size={18} color={Colors.textInverse} />
+            <Text style={styles.actionButtonText}>Add Expense</Text>
+          </View>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
@@ -162,7 +170,10 @@ export function HomeScreen({ navigation }: any) {
           }}
           activeOpacity={0.7}
         >
-          <Text style={styles.actionButtonText}>📋 View All</Text>
+          <View style={styles.actionButtonContent}>
+            <Icon name="list" size={18} color={Colors.textInverse} />
+            <Text style={styles.actionButtonText}>View All</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -195,9 +206,16 @@ export function HomeScreen({ navigation }: any) {
             activeOpacity={0.7}
             disabled={smsProcessing}
           >
-            <Text style={[styles.smsButtonText, smsProcessing && styles.smsButtonTextDisabled]}>
-              {smsProcessing ? '🔄 Checking SMS...' : '📱 Check SMS for Transactions'}
-            </Text>
+            <View style={styles.smsButtonContent}>
+              <Icon 
+                name={smsProcessing ? "refresh" : "smartphone"} 
+                size={18} 
+                color={smsProcessing ? Colors.textSecondary : Colors.primary} 
+              />
+              <Text style={[styles.smsButtonText, smsProcessing && styles.smsButtonTextDisabled]}>
+                {smsProcessing ? 'Checking SMS...' : 'Check SMS for Transactions'}
+              </Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -226,9 +244,12 @@ export function HomeScreen({ navigation }: any) {
             activeOpacity={0.7}
             disabled={smsProcessing}
           >
-            <Text style={[styles.clearButtonText, smsProcessing && styles.smsButtonTextDisabled]}>
-              {smsProcessing ? '🔄 Re-scanning...' : '🔄 Clear & Re-scan ALL SMS'}
-            </Text>
+            <View style={styles.clearButtonContent}>
+              <Icon name="refresh" size={18} color="#FFFFFF" />
+              <Text style={[styles.clearButtonText, smsProcessing && styles.smsButtonTextDisabled]}>
+                {smsProcessing ? 'Re-scanning...' : 'Clear & Re-scan ALL SMS'}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       )}
@@ -300,7 +321,7 @@ export function HomeScreen({ navigation }: any) {
           <SpendingChart timeframe={selectedTimeframe} />
         </Card>
       </View>
-    </ScrollView>
+    </ScreenWrapper>
   );
 }
 
@@ -310,12 +331,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    padding: Spacing.lg,
-    paddingTop: Spacing.xl,
+    padding: Spacing['2xl'],
+    paddingTop: Spacing['3xl'],
   },
   greeting: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.semibold,
+    fontSize: Typography.fontSize['3xl'],
+    fontWeight: Typography.fontWeight.bold,
     color: Colors.text,
     marginBottom: Spacing.xs,
   },
@@ -324,9 +345,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   summaryCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    marginHorizontal: Spacing['2xl'],
+    marginBottom: Spacing['2xl'],
     backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.xl,
+    ...Shadows.lg,
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -400,26 +423,35 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   alertText: {
     fontSize: Typography.fontSize.sm,
     color: Colors.textInverse,
+    flex: 1,
   },
   quickActions: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing['2xl'],
+    marginBottom: Spacing['2xl'],
+    gap: Spacing.lg,
   },
   actionButton: {
     flex: 1,
     backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: 12,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 50,
+    minHeight: 56,
+    ...Shadows.md,
+  },
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   actionButtonText: {
     color: Colors.textInverse,
@@ -427,14 +459,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   section: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing['2xl'],
+    marginBottom: Spacing['2xl'],
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
     color: Colors.text,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -499,6 +531,11 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     backgroundColor: '#F5F5F5',
   },
+  smsButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   smsButtonText: {
     color: Colors.primary,
     fontSize: 15,
@@ -520,6 +557,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
+  },
+  clearButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   clearButtonText: {
     color: '#FFFFFF',

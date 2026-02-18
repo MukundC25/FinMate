@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite';
 import { Transaction, Budget, Alert } from '../types';
 
 const DB_NAME = 'finmate.db';
-const DB_VERSION = 3; // Increment this when schema changes (added processed_sms table)
+const DB_VERSION = 4; // Increment this when schema changes (added family tables)
 
 let db: SQLite.SQLiteDatabase | null = null;
 
@@ -43,6 +43,9 @@ async function needsMigration(database: SQLite.SQLiteDatabase): Promise<boolean>
 async function dropAllTables(database: SQLite.SQLiteDatabase): Promise<void> {
   console.log('🗑️ Dropping old tables...');
   await database.execAsync(`
+    DROP TABLE IF EXISTS shared_transactions;
+    DROP TABLE IF EXISTS family_members;
+    DROP TABLE IF EXISTS families;
     DROP TABLE IF EXISTS transactions;
     DROP TABLE IF EXISTS budgets;
     DROP TABLE IF EXISTS alerts;
@@ -98,8 +101,11 @@ export async function initDatabase(): Promise<void> {
         isAutoDetected INTEGER DEFAULT 0,
         smsId TEXT,
         confidence REAL,
+        isShared INTEGER DEFAULT 0,
+        familyId TEXT,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (userId) REFERENCES users(id)
+        FOREIGN KEY (userId) REFERENCES users(id),
+        FOREIGN KEY (familyId) REFERENCES families(id)
       );
 
       CREATE TABLE IF NOT EXISTS budgets (
@@ -162,9 +168,46 @@ export async function initDatabase(): Promise<void> {
         FOREIGN KEY (transactionId) REFERENCES transactions(id)
       );
       
+      CREATE TABLE IF NOT EXISTS families (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        createdByUserId TEXT NOT NULL,
+        createdAt INTEGER NOT NULL,
+        inviteCode TEXT NOT NULL UNIQUE,
+        FOREIGN KEY (createdByUserId) REFERENCES users(id)
+      );
+      
+      CREATE TABLE IF NOT EXISTS family_members (
+        id TEXT PRIMARY KEY,
+        familyId TEXT NOT NULL,
+        userId TEXT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('admin', 'member')),
+        joinedAt INTEGER NOT NULL,
+        FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE,
+        FOREIGN KEY (userId) REFERENCES users(id),
+        UNIQUE(familyId, userId)
+      );
+      
+      CREATE TABLE IF NOT EXISTS shared_transactions (
+        id TEXT PRIMARY KEY,
+        familyId TEXT NOT NULL,
+        transactionId TEXT NOT NULL,
+        sharedByUserId TEXT NOT NULL,
+        sharedAt INTEGER NOT NULL,
+        FOREIGN KEY (familyId) REFERENCES families(id) ON DELETE CASCADE,
+        FOREIGN KEY (transactionId) REFERENCES transactions(id) ON DELETE CASCADE,
+        FOREIGN KEY (sharedByUserId) REFERENCES users(id),
+        UNIQUE(familyId, transactionId)
+      );
+      
       CREATE INDEX IF NOT EXISTS idx_processed_sms_hash ON processed_sms(hash);
       CREATE INDEX IF NOT EXISTS idx_processed_sms_user ON processed_sms(userId);
       CREATE INDEX IF NOT EXISTS idx_processed_sms_date ON processed_sms(date);
+      CREATE INDEX IF NOT EXISTS idx_families_invite ON families(inviteCode);
+      CREATE INDEX IF NOT EXISTS idx_family_members_family ON family_members(familyId);
+      CREATE INDEX IF NOT EXISTS idx_family_members_user ON family_members(userId);
+      CREATE INDEX IF NOT EXISTS idx_shared_transactions_family ON shared_transactions(familyId);
+      CREATE INDEX IF NOT EXISTS idx_shared_transactions_transaction ON shared_transactions(transactionId);
     `);
 
     console.log('✅ Database initialized successfully');
@@ -178,12 +221,12 @@ export async function initDatabase(): Promise<void> {
  * Transaction CRUD operations
  */
 export const TransactionDB = {
-  async create(transaction: Transaction & { userId: string }): Promise<void> {
+  async create(transaction: Transaction & { userId: string; isShared?: boolean; familyId?: string }): Promise<void> {
     const database = await getDatabase();
     
     await database.runAsync(
-      `INSERT INTO transactions (id, userId, amount, type, merchant, upiId, category, date, time, status, bankAccount, upiRef, notes, isAutoDetected, smsId, confidence)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO transactions (id, userId, amount, type, merchant, upiId, category, date, time, status, bankAccount, upiRef, notes, isAutoDetected, smsId, confidence, isShared, familyId)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         transaction.id,
         transaction.userId,
@@ -201,6 +244,8 @@ export const TransactionDB = {
         transaction.isAutoDetected ? 1 : 0,
         transaction.smsId || null,
         transaction.confidence || null,
+        transaction.isShared ? 1 : 0,
+        transaction.familyId || null,
       ]
     );
   },

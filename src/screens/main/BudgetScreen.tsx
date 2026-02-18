@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius, CategoryConfig } from '../../constants/theme';
@@ -81,19 +82,20 @@ export function BudgetScreen({ navigation }: any) {
   const overallProgress = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper
+      scroll
+      horizontalPadding={false}
+      scrollViewProps={{
+        refreshControl: <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />,
+      }}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Budgets</Text>
         <Text style={styles.subtitle}>Track your spending limits</Text>
       </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
-        }
-      >
+      <View style={styles.content}>
         {/* Overall Summary */}
         <Card style={styles.summaryCard} variant="elevated">
           <Text style={styles.summaryLabel}>Total Budget</Text>
@@ -237,8 +239,8 @@ export function BudgetScreen({ navigation }: any) {
             .filter(t => t.type === 'received')
             .reduce((sum, t) => sum + t.amount, 0) || 50000}
         />
-      </ScrollView>
-    </View>
+      </View>
+    </ScreenWrapper>
   );
 }
 
@@ -249,7 +251,10 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: Spacing.lg,
-    paddingTop: Spacing.xl,
+    backgroundColor: Colors.background,
+  },
+  content: {
+    padding: Spacing.lg,
   },
   title: {
     fontSize: Typography.fontSize['2xl'],
