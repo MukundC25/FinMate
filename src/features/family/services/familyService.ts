@@ -81,46 +81,54 @@ export const FamilyService = {
       console.log('✅ Family created successfully:', familyId);
       
       // Sync to Supabase immediately for cross-device access
-      try {
-        console.log('☁️ Syncing family to Supabase...');
-        const { error: supabaseError } = await supabase
-          .from('families')
-          .insert({
-            id: familyId,
-            name: params.name,
-            created_by_user_id: params.createdByUserId,
-            invite_code: inviteCode,
-            created_at: new Date(createdAt).toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-        
-        if (supabaseError) {
-          console.error('⚠️ Failed to sync family to Supabase:', supabaseError);
-          // Don't throw - family is created locally, sync can happen later
-        } else {
-          console.log('✅ Family synced to Supabase');
-          
-          // Also sync the family member
-          const { error: memberError } = await supabase
-            .from('family_members')
-            .insert({
-              id: memberId,
-              family_id: familyId,
-              user_id: params.createdByUserId,
-              role: 'admin',
-              joined_at: new Date(createdAt).toISOString(),
-            });
-          
-          if (memberError) {
-            console.error('⚠️ Failed to sync family member to Supabase:', memberError);
-          } else {
-            console.log('✅ Family member synced to Supabase');
-          }
-        }
-      } catch (syncError) {
-        console.error('⚠️ Error syncing to Supabase:', syncError);
-        // Don't throw - family is created locally
+      console.log('☁️ Syncing family to Supabase...');
+      
+      // Check if user is authenticated with Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('❌ No Supabase session - user not authenticated');
+        throw new Error('You must be logged in to create a family. Please sign in with Google and try again.');
       }
+      
+      console.log('✅ Supabase session found:', session.user.id);
+      
+      const { error: supabaseError } = await supabase
+        .from('families')
+        .insert({
+          id: familyId,
+          name: params.name,
+          created_by_user_id: params.createdByUserId,
+          invite_code: inviteCode,
+          created_at: new Date(createdAt).toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      
+      if (supabaseError) {
+        console.error('❌ Failed to sync family to Supabase:', supabaseError);
+        console.error('❌ Supabase error details:', JSON.stringify(supabaseError, null, 2));
+        throw new Error(`Failed to sync family to cloud: ${supabaseError.message}. Family not created.`);
+      }
+      
+      console.log('✅ Family synced to Supabase');
+      
+      // Also sync the family member
+      const { error: memberError } = await supabase
+        .from('family_members')
+        .insert({
+          id: memberId,
+          family_id: familyId,
+          user_id: params.createdByUserId,
+          role: 'admin',
+          joined_at: new Date(createdAt).toISOString(),
+        });
+      
+      if (memberError) {
+        console.error('❌ Failed to sync family member to Supabase:', memberError);
+        console.error('❌ Member error details:', JSON.stringify(memberError, null, 2));
+        throw new Error(`Failed to add you as family admin: ${memberError.message}`);
+      }
+      
+      console.log('✅ Family member synced to Supabase');
       
       return {
         id: familyId,

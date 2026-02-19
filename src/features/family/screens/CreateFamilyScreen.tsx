@@ -34,13 +34,24 @@ export function CreateFamilyScreen({ navigation }: any) {
       // Navigate back immediately to show the family details
       navigation.goBack();
       
-      // Show success message after navigation
+      // Show success message after navigation with invite code
       setTimeout(() => {
-        Alert.alert('Success', 'Family created successfully! 🎉');
+        Alert.alert(
+          'Success! 🎉', 
+          `Family created successfully!\n\nInvite Code: ${family.inviteCode}\n\nShare this code with family members to join.`,
+          [{ text: 'OK' }]
+        );
       }, 300);
     } catch (error) {
       console.error('❌ Error creating family:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to create family');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create family';
+      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+      
+      Alert.alert(
+        'Error Creating Family', 
+        errorMessage + '\n\nPlease check your internet connection and try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
