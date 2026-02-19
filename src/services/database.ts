@@ -14,10 +14,18 @@ async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   
   try {
+    console.log('📂 Opening database:', DB_NAME);
     db = await SQLite.openDatabaseAsync(DB_NAME);
+    
+    if (!db) {
+      throw new Error('Database instance is null after opening');
+    }
+    
+    console.log('✅ Database opened successfully');
     return db;
   } catch (error) {
     console.error('❌ Error opening database:', error);
+    console.error('❌ Error details:', JSON.stringify(error, null, 2));
     throw error;
   }
 }
@@ -61,19 +69,28 @@ async function dropAllTables(database: SQLite.SQLiteDatabase): Promise<void> {
  * Initialize database and create tables
  */
 export async function initDatabase(): Promise<void> {
-  try {
-    const database = await getDatabase();
-    
-    // Check if migration is needed
-    const shouldMigrate = await needsMigration(database);
-    
-    if (shouldMigrate) {
-      console.log('⚠️ Database schema changed, recreating tables...');
-      await dropAllTables(database);
-    }
-    
-    // Create all tables in a single transaction
-    await database.execAsync(`
+  let retries = 3;
+  let lastError: any = null;
+  
+  while (retries > 0) {
+    try {
+      console.log(`🔄 Initializing database (attempts left: ${retries})...`);
+      const database = await getDatabase();
+      
+      if (!database) {
+        throw new Error('Failed to get database instance');
+      }
+      
+      // Check if migration is needed
+      const shouldMigrate = await needsMigration(database);
+      
+      if (shouldMigrate) {
+        console.log('⚠️ Database schema changed, recreating tables...');
+        await dropAllTables(database);
+      }
+      
+      // Create all tables in a single transaction
+      await database.execAsync(`
       PRAGMA journal_mode = WAL;
       
       CREATE TABLE IF NOT EXISTS users (
@@ -212,11 +229,25 @@ export async function initDatabase(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_shared_transactions_transaction ON shared_transactions(transactionId);
     `);
 
-    console.log('✅ Database initialized successfully');
-  } catch (error) {
-    console.error('❌ Database initialization error:', error);
-    throw error;
+      console.log('✅ Database initialized successfully');
+      return; // Success, exit retry loop
+    } catch (error) {
+      lastError = error;
+      retries--;
+      console.error(`❌ Database initialization error (${retries} retries left):`, error);
+      
+      if (retries > 0) {
+        // Reset db instance to force reconnection
+        db = null;
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
   }
+  
+  // If we get here, all retries failed
+  console.error('❌ Database initialization failed after all retries');
+  throw lastError || new Error('Database initialization failed');
 }
 
 /**

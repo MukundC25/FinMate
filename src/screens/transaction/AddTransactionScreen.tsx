@@ -66,9 +66,19 @@ export function AddTransactionScreen({ navigation }: any) {
       };
 
       console.log('💾 Saving transaction for user:', currentUserId);
-      await TransactionDB.create({ ...transaction, userId: currentUserId });
-      addTransaction(transaction);
+      console.log('💾 Transaction data:', JSON.stringify(transaction, null, 2));
       
+      try {
+        await TransactionDB.create({ ...transaction, userId: currentUserId });
+        console.log('✅ Transaction saved to database');
+      } catch (dbError) {
+        console.error('❌ Database save error:', dbError);
+        console.error('❌ Database error details:', JSON.stringify(dbError, null, 2));
+        throw new Error(`Database error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+      }
+      
+      addTransaction(transaction);
+      console.log('✅ Transaction added to store');
       console.log('✅ Transaction saved successfully!');
       
       // Auto-share transaction with family if user is in a family

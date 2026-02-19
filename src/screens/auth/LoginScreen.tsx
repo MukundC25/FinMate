@@ -210,9 +210,12 @@ export function LoginScreen({ navigation }: any) {
       console.log('✅ Sync service initialized');
 
       // Navigate to main app
+      console.log('🚀 Navigating to MainTabs...');
       navigation.replace('MainTabs');
+      console.log('✅ Navigation complete');
     } catch (error: any) {
       console.error('❌ Google login error:', error);
+      console.error('❌ Error stack:', error.stack);
       Alert.alert(
         'Google Sign-In Failed',
         error.message || 'Failed to sign in with Google. Please try again.'
