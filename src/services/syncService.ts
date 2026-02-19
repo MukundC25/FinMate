@@ -21,11 +21,23 @@ export const SyncService = {
     isSyncing: false,
   } as SyncStatus,
 
+  currentUserId: null as string | null,
+  syncInterval: null as NodeJS.Timeout | null,
+
   /**
    * Initialize sync service and start periodic sync
    */
   async initialize(userId: string): Promise<void> {
     console.log('🔄 Initializing sync service for user:', userId);
+    
+    // Clear any existing sync interval
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
+
+    // Update current user ID
+    this.currentUserId = userId;
     
     // Load last sync time
     const lastSync = await AsyncStorage.getItem(`last_sync_${userId}`);
@@ -39,8 +51,14 @@ export const SyncService = {
    * Start periodic sync timer
    */
   startPeriodicSync(userId: string): void {
-    setInterval(async () => {
-      if (!this.syncStatus.isSyncing) {
+    // Clear existing interval if any
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+    }
+
+    this.syncInterval = setInterval(async () => {
+      // Only sync if this is still the current user
+      if (this.currentUserId === userId && !this.syncStatus.isSyncing) {
         await this.performSync(userId);
       }
     }, 30000); // 30 seconds
@@ -100,6 +118,14 @@ export const SyncService = {
         console.log(`⬆️ Uploading ${unsyncedTransactions.length} transactions...`);
 
         for (const transaction of unsyncedTransactions) {
+          // Skip transactions that don't belong to the current user
+          // This prevents foreign key constraint errors from old guest/local user data
+          const txUserId = (transaction as any).userId;
+          if (txUserId && txUserId !== userId) {
+            console.log(`⚠️ Skipping transaction ${transaction.id} - belongs to different user (${txUserId})`);
+            continue;
+          }
+
           // Check if transaction exists in Supabase
           const { data: existing } = await supabase
             .from('transactions')
@@ -195,6 +221,110 @@ export const SyncService = {
           }
 
           await BudgetDB.markAsSynced(budget.id);
+        }
+      }
+
+      // Upload families
+      const database = await TransactionDB.getAll(userId).then(() => 
+        require('expo-sqlite').openDatabaseAsync('finmate.db')
+      );
+      
+      const families = await database.getAllAsync(
+        'SELECT * FROM families WHERE createdByUserId = ?',
+        [userId]
+      );
+
+      if (families && families.length > 0) {
+        console.log(`⬆️ Uploading ${families.length} families...`);
+        
+        for (const family of families as any[]) {
+          const { data: existing } = await supabase
+            .from('families')
+            .select('id')
+            .eq('id', family.id)
+            .single();
+
+          const familyData = {
+            id: family.id,
+            name: family.name,
+            created_by_user_id: family.createdByUserId,
+            invite_code: family.inviteCode,
+            created_at: new Date(family.createdAt).toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+
+          if (existing) {
+            await supabase.from('families').update(familyData).eq('id', family.id);
+          } else {
+            await supabase.from('families').insert(familyData);
+          }
+        }
+      }
+
+      // Upload family members
+      const members = await database.getAllAsync(
+        `SELECT fm.* FROM family_members fm
+         JOIN families f ON fm.familyId = f.id
+         WHERE f.createdByUserId = ? OR fm.userId = ?`,
+        [userId, userId]
+      );
+
+      if (members && members.length > 0) {
+        console.log(`⬆️ Uploading ${members.length} family members...`);
+        
+        for (const member of members as any[]) {
+          const { data: existing } = await supabase
+            .from('family_members')
+            .select('id')
+            .eq('id', member.id)
+            .single();
+
+          const memberData = {
+            id: member.id,
+            family_id: member.familyId,
+            user_id: member.userId,
+            role: member.role,
+            joined_at: new Date(member.joinedAt).toISOString(),
+          };
+
+          if (existing) {
+            await supabase.from('family_members').update(memberData).eq('id', member.id);
+          } else {
+            await supabase.from('family_members').insert(memberData);
+          }
+        }
+      }
+
+      // Upload shared transactions
+      const sharedTransactions = await database.getAllAsync(
+        `SELECT st.* FROM shared_transactions st
+         WHERE st.sharedByUserId = ?`,
+        [userId]
+      );
+
+      if (sharedTransactions && sharedTransactions.length > 0) {
+        console.log(`⬆️ Uploading ${sharedTransactions.length} shared transactions...`);
+        
+        for (const shared of sharedTransactions as any[]) {
+          const { data: existing } = await supabase
+            .from('shared_transactions')
+            .select('id')
+            .eq('id', shared.id)
+            .single();
+
+          const sharedData = {
+            id: shared.id,
+            family_id: shared.familyId,
+            transaction_id: shared.transactionId,
+            shared_by_user_id: shared.sharedByUserId,
+            shared_at: new Date(shared.sharedAt).toISOString(),
+          };
+
+          if (existing) {
+            await supabase.from('shared_transactions').update(sharedData).eq('id', shared.id);
+          } else {
+            await supabase.from('shared_transactions').insert(sharedData);
+          }
         }
       }
 

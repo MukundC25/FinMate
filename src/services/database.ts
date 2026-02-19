@@ -27,13 +27,13 @@ async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
  */
 async function needsMigration(database: SQLite.SQLiteDatabase): Promise<boolean> {
   try {
-    // Try to get a column from the new schema
+    // Check for new columns added in version 6 (isShared, familyId, syncedAt)
     const result = await database.getFirstAsync(
-      "SELECT userId FROM transactions LIMIT 1"
+      "SELECT isShared, syncedAt FROM transactions LIMIT 1"
     );
-    return false; // Column exists, no migration needed
+    return false; // Columns exist, no migration needed
   } catch (error) {
-    return true; // Column doesn't exist, need migration
+    return true; // Columns don't exist, need migration
   }
 }
 
@@ -698,6 +698,39 @@ export const ProcessedSMSDB = {
     await database.runAsync('DELETE FROM processed_sms WHERE userId = ?', [userId]);
   },
 };
+
+/**
+ * Clear all user-specific data from local database
+ * Call this when switching users to prevent data leakage
+ */
+export async function clearUserData(userId?: string): Promise<void> {
+  try {
+    const database = await getDatabase();
+    console.log('🧹 Clearing local database data...');
+    
+    if (userId) {
+      // Clear specific user's data
+      await database.runAsync('DELETE FROM transactions WHERE userId = ?', [userId]);
+      await database.runAsync('DELETE FROM budgets WHERE userId = ?', [userId]);
+      await database.runAsync('DELETE FROM alerts WHERE userId = ?', [userId]);
+      await database.runAsync('DELETE FROM processed_sms WHERE userId = ?', [userId]);
+      console.log('✅ Cleared data for user:', userId);
+    } else {
+      // Clear all user data (when logging out completely)
+      await database.runAsync('DELETE FROM transactions');
+      await database.runAsync('DELETE FROM budgets');
+      await database.runAsync('DELETE FROM alerts');
+      await database.runAsync('DELETE FROM processed_sms');
+      await database.runAsync('DELETE FROM shared_transactions');
+      await database.runAsync('DELETE FROM family_members');
+      await database.runAsync('DELETE FROM families');
+      console.log('✅ Cleared all local data');
+    }
+  } catch (error) {
+    console.error('❌ Error clearing user data:', error);
+    throw error;
+  }
+}
 
 /**
  * Clear all data (for testing/reset)

@@ -49,20 +49,32 @@ export const FamilyService = {
   async getFamilyByUserId(userId: string): Promise<FamilyWithMembers | null> {
     const database = await getDatabase();
 
-    const memberRow = await database.getFirstAsync<{ familyId: string }>(
-      'SELECT familyId FROM family_members WHERE userId = ? LIMIT 1',
+    console.log('🔍 Searching for family member with userId:', userId);
+    
+    // Join family_members with families to ensure we only get valid families
+    // Order by joinedAt DESC to get the most recent family
+    const result = await database.getFirstAsync<{ familyId: string; familyName: string }>(
+      `SELECT fm.familyId, f.name as familyName 
+       FROM family_members fm
+       INNER JOIN families f ON fm.familyId = f.id
+       WHERE fm.userId = ?
+       ORDER BY fm.joinedAt DESC
+       LIMIT 1`,
       [userId]
     );
 
-    if (!memberRow) {
+    console.log('🔍 Family member with valid family found:', result);
+    if (!result) {
+      console.log('⚠️ No valid family found for user');
       return null;
     }
 
     const family = await database.getFirstAsync<Family>(
       'SELECT * FROM families WHERE id = ?',
-      [memberRow.familyId]
+      [result.familyId]
     );
 
+    console.log('🔍 Family loaded:', family);
     if (!family) {
       return null;
     }

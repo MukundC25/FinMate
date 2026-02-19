@@ -29,12 +29,15 @@ export function FamilyHomeScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
 
+  console.log('🏠 FamilyHomeScreen render - hasFamily:', hasFamily, 'currentFamily:', currentFamily?.name, 'isLoading:', isLoading);
+
   useFocusEffect(
     useCallback(() => {
-      if (hasFamily) {
-        refreshFamily();
-      }
-    }, [hasFamily, refreshFamily])
+      // Always refresh family data when screen comes into focus
+      // This ensures newly created families are displayed
+      console.log('🔄 FamilyHomeScreen focused - refreshing family data');
+      refreshFamily();
+    }, [refreshFamily])
   );
 
   const onRefresh = async () => {

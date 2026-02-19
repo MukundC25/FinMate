@@ -71,6 +71,32 @@ export function AddTransactionScreen({ navigation }: any) {
       
       console.log('✅ Transaction saved successfully!');
       
+      // Auto-share transaction with family if user is in a family
+      try {
+        const { FamilyService } = await import('../../features/family/services/familyService');
+        const family = await FamilyService.getFamilyByUserId(currentUserId);
+        
+        if (family) {
+          console.log('👨‍👩‍👧‍👦 Sharing transaction with family:', family.name);
+          await FamilyService.shareTransaction({
+            transactionId: transaction.id,
+            familyId: family.id,
+            sharedByUserId: currentUserId,
+          });
+          console.log('✅ Transaction shared with family');
+        }
+      } catch (error) {
+        console.log('⚠️ Failed to share transaction with family:', error);
+      }
+      
+      // Auto-sync to cloud (non-blocking)
+      if (!currentUserId.startsWith('guest_')) {
+        const { SyncService } = await import('../../services/syncService');
+        SyncService.performSync(currentUserId).catch(err => 
+          console.log('⚠️ Auto-sync failed:', err)
+        );
+      }
+      
       // Clear form
       setAmount('');
       setMerchant('');
