@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { supabase } from '../../../config/supabase';
 import { 
   Family, 
   FamilyMember, 
@@ -13,37 +14,126 @@ import { Transaction } from '../../../types';
 
 const DB_NAME = 'finmate.db';
 
+let dbInstance: SQLite.SQLiteDatabase | null = null;
+
 async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  return await SQLite.openDatabaseAsync(DB_NAME);
+  if (dbInstance) {
+    return dbInstance;
+  }
+  
+  try {
+    console.log('👨‍👩‍👧‍👦 Opening family database:', DB_NAME);
+    dbInstance = await SQLite.openDatabaseAsync(DB_NAME);
+    
+    if (!dbInstance) {
+      throw new Error('Database instance is null after opening');
+    }
+    
+    console.log('✅ Family database opened successfully');
+    return dbInstance;
+  } catch (error) {
+    console.error('❌ Error opening family database:', error);
+    throw new Error(`Failed to open database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 export const FamilyService = {
   async createFamily(params: CreateFamilyParams): Promise<Family> {
-    const database = await getDatabase();
-    const familyId = `family_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const inviteCode = this.generateInviteCode();
-    const createdAt = Date.now();
+    try {
+      console.log('👨‍👩‍👧‍👦 Creating family with params:', params);
+      
+      const database = await getDatabase();
+      console.log('✅ Database instance obtained');
+      
+      const familyId = `family_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const inviteCode = this.generateInviteCode();
+      const createdAt = Date.now();
+      
+      console.log('👨‍👩‍👧‍👦 Inserting family:', { familyId, name: params.name, inviteCode });
 
-    await database.runAsync(
-      `INSERT INTO families (id, name, createdByUserId, createdAt, inviteCode)
-       VALUES (?, ?, ?, ?, ?)`,
-      [familyId, params.name, params.createdByUserId, createdAt, inviteCode]
-    );
+      try {
+        await database.runAsync(
+          `INSERT INTO families (id, name, createdByUserId, createdAt, inviteCode)
+           VALUES (?, ?, ?, ?, ?)`,
+          [familyId, params.name, params.createdByUserId, createdAt, inviteCode]
+        );
+        console.log('✅ Family inserted successfully');
+      } catch (insertError) {
+        console.error('❌ Error inserting family:', insertError);
+        throw new Error(`Failed to insert family: ${insertError instanceof Error ? insertError.message : 'Unknown error'}`);
+      }
 
-    const memberId = `member_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    await database.runAsync(
-      `INSERT INTO family_members (id, familyId, userId, role, joinedAt)
-       VALUES (?, ?, ?, ?, ?)`,
-      [memberId, familyId, params.createdByUserId, 'admin', createdAt]
-    );
+      const memberId = `member_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      console.log('👨‍👩‍👧‍👦 Adding creator as admin member:', memberId);
+      
+      try {
+        await database.runAsync(
+          `INSERT INTO family_members (id, familyId, userId, role, joinedAt)
+           VALUES (?, ?, ?, ?, ?)`,
+          [memberId, familyId, params.createdByUserId, 'admin', createdAt]
+        );
+        console.log('✅ Family member inserted successfully');
+      } catch (memberError) {
+        console.error('❌ Error inserting family member:', memberError);
+        throw new Error(`Failed to insert family member: ${memberError instanceof Error ? memberError.message : 'Unknown error'}`);
+      }
 
-    return {
-      id: familyId,
-      name: params.name,
-      createdByUserId: params.createdByUserId,
-      createdAt,
-      inviteCode,
-    };
+      console.log('✅ Family created successfully:', familyId);
+      
+      // Sync to Supabase immediately for cross-device access
+      try {
+        console.log('☁️ Syncing family to Supabase...');
+        const { error: supabaseError } = await supabase
+          .from('families')
+          .insert({
+            id: familyId,
+            name: params.name,
+            created_by_user_id: params.createdByUserId,
+            invite_code: inviteCode,
+            created_at: new Date(createdAt).toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        
+        if (supabaseError) {
+          console.error('⚠️ Failed to sync family to Supabase:', supabaseError);
+          // Don't throw - family is created locally, sync can happen later
+        } else {
+          console.log('✅ Family synced to Supabase');
+          
+          // Also sync the family member
+          const { error: memberError } = await supabase
+            .from('family_members')
+            .insert({
+              id: memberId,
+              family_id: familyId,
+              user_id: params.createdByUserId,
+              role: 'admin',
+              joined_at: new Date(createdAt).toISOString(),
+            });
+          
+          if (memberError) {
+            console.error('⚠️ Failed to sync family member to Supabase:', memberError);
+          } else {
+            console.log('✅ Family member synced to Supabase');
+          }
+        }
+      } catch (syncError) {
+        console.error('⚠️ Error syncing to Supabase:', syncError);
+        // Don't throw - family is created locally
+      }
+      
+      return {
+        id: familyId,
+        name: params.name,
+        createdByUserId: params.createdByUserId,
+        createdAt,
+        inviteCode,
+      };
+    } catch (error) {
+      console.error('❌ Create family error:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      throw error;
+    }
   },
 
   async getFamilyByUserId(userId: string): Promise<FamilyWithMembers | null> {
@@ -96,49 +186,150 @@ export const FamilyService = {
   },
 
   async getFamilyByInviteCode(inviteCode: string): Promise<Family | null> {
-    const database = await getDatabase();
-    
-    const family = await database.getFirstAsync<Family>(
-      'SELECT * FROM families WHERE inviteCode = ?',
-      [inviteCode]
-    );
+    try {
+      console.log('🔍 Looking up family by invite code:', inviteCode);
+      const database = await getDatabase();
+      
+      // First, check all families in local DB for debugging
+      const allFamilies = await database.getAllAsync<Family>('SELECT * FROM families');
+      console.log('📋 All families in local DB:', allFamilies?.length || 0);
+      if (allFamilies && allFamilies.length > 0) {
+        console.log('📋 Family invite codes:', allFamilies.map(f => f.inviteCode));
+      }
+      
+      const family = await database.getFirstAsync<Family>(
+        'SELECT * FROM families WHERE inviteCode = ?',
+        [inviteCode]
+      );
 
-    return family || null;
+      if (family) {
+        console.log('✅ Family found:', family.name, family.id);
+      } else {
+        console.log('❌ No family found with invite code:', inviteCode);
+      }
+
+      return family || null;
+    } catch (error) {
+      console.error('❌ Error looking up family by invite code:', error);
+      throw error;
+    }
   },
 
   async joinFamily(params: JoinFamilyParams): Promise<FamilyMember> {
-    const database = await getDatabase();
+    try {
+      console.log('👨‍👩‍👧‍👦 Joining family with params:', params);
+      const database = await getDatabase();
 
-    const family = await this.getFamilyByInviteCode(params.inviteCode);
-    if (!family) {
-      throw new Error('Invalid invite code');
+      // First try local database
+      let family = await this.getFamilyByInviteCode(params.inviteCode);
+      
+      // If not found locally, check Supabase (for cross-device family sharing)
+      if (!family) {
+        console.log('🔍 Family not in local DB, checking Supabase...');
+        try {
+          const { data: supabaseFamily, error } = await supabase
+            .from('families')
+            .select('*')
+            .eq('invite_code', params.inviteCode)
+            .single();
+          
+          if (error) {
+            console.error('❌ Supabase lookup error:', error);
+          } else if (supabaseFamily) {
+            console.log('✅ Family found in Supabase:', supabaseFamily.name);
+            
+            // Sync family to local database
+            console.log('💾 Syncing family to local database...');
+            await database.runAsync(
+              `INSERT OR REPLACE INTO families (id, name, createdByUserId, createdAt, inviteCode)
+               VALUES (?, ?, ?, ?, ?)`,
+              [
+                supabaseFamily.id,
+                supabaseFamily.name,
+                supabaseFamily.created_by_user_id,
+                new Date(supabaseFamily.created_at).getTime(),
+                supabaseFamily.invite_code
+              ]
+            );
+            
+            // Use the synced family
+            family = {
+              id: supabaseFamily.id,
+              name: supabaseFamily.name,
+              createdByUserId: supabaseFamily.created_by_user_id,
+              createdAt: new Date(supabaseFamily.created_at).getTime(),
+              inviteCode: supabaseFamily.invite_code,
+            };
+            console.log('✅ Family synced to local database');
+          }
+        } catch (supabaseError) {
+          console.error('❌ Error checking Supabase:', supabaseError);
+        }
+      }
+      
+      if (!family) {
+        console.error('❌ Invalid invite code - family not found in local DB or Supabase');
+        throw new Error('Invalid invite code. Please check the code and try again.');
+      }
+
+      console.log('✅ Family found, checking if user is already a member...');
+      const existingMember = await database.getFirstAsync<FamilyMember>(
+        'SELECT * FROM family_members WHERE familyId = ? AND userId = ?',
+        [family.id, params.userId]
+      );
+
+      if (existingMember) {
+        console.log('⚠️ User is already a member');
+        throw new Error('User is already a member of this family');
+      }
+
+      const memberId = `member_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const joinedAt = Date.now();
+
+      console.log('👨‍👩‍👧‍👦 Adding user as family member...');
+      await database.runAsync(
+        `INSERT INTO family_members (id, familyId, userId, role, joinedAt)
+         VALUES (?, ?, ?, ?, ?)`,
+        [memberId, family.id, params.userId, 'member', joinedAt]
+      );
+
+      console.log('✅ User joined family successfully');
+      
+      // Sync to Supabase immediately
+      try {
+        console.log('☁️ Syncing family member to Supabase...');
+        const { error: supabaseError } = await supabase
+          .from('family_members')
+          .insert({
+            id: memberId,
+            family_id: family.id,
+            user_id: params.userId,
+            role: 'member',
+            joined_at: new Date(joinedAt).toISOString(),
+          });
+        
+        if (supabaseError) {
+          console.error('⚠️ Failed to sync family member to Supabase:', supabaseError);
+          // Don't throw - member is added locally
+        } else {
+          console.log('✅ Family member synced to Supabase');
+        }
+      } catch (syncError) {
+        console.error('⚠️ Error syncing to Supabase:', syncError);
+      }
+      
+      return {
+        id: memberId,
+        familyId: family.id,
+        userId: params.userId,
+        role: 'member',
+        joinedAt,
+      };
+    } catch (error) {
+      console.error('❌ Join family error:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      throw error;
     }
-
-    const existingMember = await database.getFirstAsync<FamilyMember>(
-      'SELECT * FROM family_members WHERE familyId = ? AND userId = ?',
-      [family.id, params.userId]
-    );
-
-    if (existingMember) {
-      throw new Error('User is already a member of this family');
-    }
-
-    const memberId = `member_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const joinedAt = Date.now();
-
-    await database.runAsync(
-      `INSERT INTO family_members (id, familyId, userId, role, joinedAt)
-       VALUES (?, ?, ?, ?, ?)`,
-      [memberId, family.id, params.userId, 'member', joinedAt]
-    );
-
-    return {
-      id: memberId,
-      familyId: family.id,
-      userId: params.userId,
-      role: 'member',
-      joinedAt,
-    };
   },
 
   async shareTransaction(params: ShareTransactionParams): Promise<SharedTransaction> {
