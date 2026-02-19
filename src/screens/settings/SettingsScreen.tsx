@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Alert, ActivityIndicator } from 'react-native';
 import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
+import { SyncService } from '../../services/syncService';
+import { useStore } from '../../store/useStore';
 
 const CURRENCIES = [
   { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
@@ -13,15 +16,47 @@ const CURRENCIES = [
 ];
 
 export function SettingsScreen({ navigation }: any) {
+  const { currentUserId } = useStore();
   const [selectedCurrency, setSelectedCurrency] = useState('INR');
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [budgetAlerts, setBudgetAlerts] = useState(true);
   const [transactionAlerts, setTransactionAlerts] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const handleCurrencyChange = (code: string) => {
     setSelectedCurrency(code);
     Alert.alert('Currency Updated', `Currency changed to ${code}`);
+  };
+
+  const handleManualSync = async () => {
+    if (!currentUserId) {
+      Alert.alert('Error', 'No user logged in');
+      return;
+    }
+
+    if (currentUserId.startsWith('guest_')) {
+      Alert.alert('Guest Mode', 'Sync is not available for guest users. Sign in with an account to enable cloud sync.');
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      console.log('🔄 Manual sync triggered for user:', currentUserId);
+      await SyncService.performSync(currentUserId);
+      
+      const status = SyncService.syncStatus;
+      Alert.alert(
+        'Sync Complete! ✅',
+        `Last sync: ${status.lastSyncTime ? new Date(status.lastSyncTime).toLocaleTimeString() : 'Never'}\nPending uploads: ${status.pendingUploads}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('❌ Manual sync error:', error);
+      Alert.alert('Sync Failed', error.message || 'Failed to sync with cloud. Please check your internet connection.');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -132,6 +167,26 @@ export function SettingsScreen({ navigation }: any) {
               thumbColor={darkMode ? Colors.primary : Colors.textSecondary}
             />
           </View>
+        </Card>
+
+        {/* Supabase Sync (Test) */}
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>☁️ Cloud Sync</Text>
+          <Text style={styles.settingDescription}>
+            Test Supabase synchronization. Syncs transactions and budgets with the cloud.
+          </Text>
+          <View style={{ marginTop: Spacing.md }}>
+            <Button
+              title={syncing ? 'Syncing...' : 'Sync Now'}
+              onPress={handleManualSync}
+              disabled={syncing}
+            />
+          </View>
+          {SyncService.syncStatus.lastSyncTime && (
+            <Text style={[styles.settingDescription, { marginTop: Spacing.sm, textAlign: 'center' }]}>
+              Last sync: {new Date(SyncService.syncStatus.lastSyncTime).toLocaleString()}
+            </Text>
+          )}
         </Card>
 
         {/* Info */}

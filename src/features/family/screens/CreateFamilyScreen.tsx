@@ -17,12 +17,41 @@ export function CreateFamilyScreen({ navigation }: any) {
     }
 
     try {
-      await createFamily(familyName.trim());
-      Alert.alert('Success', 'Family created successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      const family = await createFamily(familyName.trim());
+      console.log('✅ Family created:', family);
+      
+      // Auto-sync family data to Supabase (non-blocking)
+      const { SyncService } = await import('../../../services/syncService');
+      const { useStore } = await import('../../../store/useStore');
+      const currentUserId = useStore.getState().currentUserId;
+      
+      if (currentUserId && !currentUserId.startsWith('guest_')) {
+        SyncService.performSync(currentUserId).catch(err => 
+          console.log('⚠️ Auto-sync failed:', err)
+        );
+      }
+      
+      // Navigate back immediately to show the family details
+      navigation.goBack();
+      
+      // Show success message after navigation with invite code
+      setTimeout(() => {
+        Alert.alert(
+          'Success! 🎉', 
+          `Family created successfully!\n\nInvite Code: ${family.inviteCode}\n\nShare this code with family members to join.`,
+          [{ text: 'OK' }]
+        );
+      }, 300);
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to create family');
+      console.error('❌ Error creating family:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create family';
+      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+      
+      Alert.alert(
+        'Error Creating Family', 
+        errorMessage + '\n\nPlease check your internet connection and try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 

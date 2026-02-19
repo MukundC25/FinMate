@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite';
 import { Transaction, Budget, Alert } from '../types';
 
 const DB_NAME = 'finmate.db';
-const DB_VERSION = 5; // Increment this when schema changes (fixed missing isShared and familyId columns)
+const DB_VERSION = 6; // Increment this when schema changes (added syncedAt columns for Supabase sync)
 
 let db: SQLite.SQLiteDatabase | null = null;
 
@@ -14,10 +14,18 @@ async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   
   try {
+    console.log('📂 Opening database:', DB_NAME);
     db = await SQLite.openDatabaseAsync(DB_NAME);
+    
+    if (!db) {
+      throw new Error('Database instance is null after opening');
+    }
+    
+    console.log('✅ Database opened successfully');
     return db;
   } catch (error) {
     console.error('❌ Error opening database:', error);
+    console.error('❌ Error details:', JSON.stringify(error, null, 2));
     throw error;
   }
 }
@@ -27,13 +35,13 @@ async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
  */
 async function needsMigration(database: SQLite.SQLiteDatabase): Promise<boolean> {
   try {
-    // Try to get a column from the new schema
+    // Check for new columns added in version 6 (isShared, familyId, syncedAt)
     const result = await database.getFirstAsync(
-      "SELECT userId FROM transactions LIMIT 1"
+      "SELECT isShared, syncedAt FROM transactions LIMIT 1"
     );
-    return false; // Column exists, no migration needed
+    return false; // Columns exist, no migration needed
   } catch (error) {
-    return true; // Column doesn't exist, need migration
+    return true; // Columns don't exist, need migration
   }
 }
 
@@ -61,19 +69,28 @@ async function dropAllTables(database: SQLite.SQLiteDatabase): Promise<void> {
  * Initialize database and create tables
  */
 export async function initDatabase(): Promise<void> {
-  try {
-    const database = await getDatabase();
-    
-    // Check if migration is needed
-    const shouldMigrate = await needsMigration(database);
-    
-    if (shouldMigrate) {
-      console.log('⚠️ Database schema changed, recreating tables...');
-      await dropAllTables(database);
-    }
-    
-    // Create all tables in a single transaction
-    await database.execAsync(`
+  let retries = 3;
+  let lastError: any = null;
+  
+  while (retries > 0) {
+    try {
+      console.log(`🔄 Initializing database (attempts left: ${retries})...`);
+      const database = await getDatabase();
+      
+      if (!database) {
+        throw new Error('Failed to get database instance');
+      }
+      
+      // Check if migration is needed
+      const shouldMigrate = await needsMigration(database);
+      
+      if (shouldMigrate) {
+        console.log('⚠️ Database schema changed, recreating tables...');
+        await dropAllTables(database);
+      }
+      
+      // Create all tables in a single transaction
+      await database.execAsync(`
       PRAGMA journal_mode = WAL;
       
       CREATE TABLE IF NOT EXISTS users (
@@ -104,6 +121,7 @@ export async function initDatabase(): Promise<void> {
         isShared INTEGER DEFAULT 0,
         familyId TEXT,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        syncedAt TEXT,
         FOREIGN KEY (userId) REFERENCES users(id),
         FOREIGN KEY (familyId) REFERENCES families(id)
       );
@@ -118,6 +136,7 @@ export async function initDatabase(): Promise<void> {
         startDate TEXT NOT NULL,
         endDate TEXT NOT NULL,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        syncedAt TEXT,
         FOREIGN KEY (userId) REFERENCES users(id),
         UNIQUE(userId, category)
       );
@@ -210,11 +229,25 @@ export async function initDatabase(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_shared_transactions_transaction ON shared_transactions(transactionId);
     `);
 
-    console.log('✅ Database initialized successfully');
-  } catch (error) {
-    console.error('❌ Database initialization error:', error);
-    throw error;
+      console.log('✅ Database initialized successfully');
+      return; // Success, exit retry loop
+    } catch (error) {
+      lastError = error;
+      retries--;
+      console.error(`❌ Database initialization error (${retries} retries left):`, error);
+      
+      if (retries > 0) {
+        // Reset db instance to force reconnection
+        db = null;
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
   }
+  
+  // If we get here, all retries failed
+  console.error('❌ Database initialization failed after all retries');
+  throw lastError || new Error('Database initialization failed');
 }
 
 /**
@@ -316,6 +349,15 @@ export const TransactionDB = {
     await database.runAsync('DELETE FROM transactions');
   },
 
+  async markAsSynced(id: string): Promise<void> {
+    const database = await getDatabase();
+    
+    await database.runAsync(
+      'UPDATE transactions SET syncedAt = ? WHERE id = ?',
+      [new Date().toISOString(), id]
+    );
+  },
+
   async getTotalSpent(startDate: string, endDate: string, userId: string): Promise<number> {
     const database = await getDatabase();
     
@@ -411,6 +453,25 @@ export const BudgetDB = {
     const database = await getDatabase();
     
     await database.runAsync('DELETE FROM budgets');
+  },
+
+  async markAsSynced(id: string): Promise<void> {
+    const database = await getDatabase();
+    
+    await database.runAsync(
+      'UPDATE budgets SET syncedAt = ? WHERE id = ?',
+      [new Date().toISOString(), id]
+    );
+  },
+
+  async getById(id: string): Promise<Budget | null> {
+    const database = await getDatabase();
+    
+    const result = await database.getFirstAsync<Budget>(
+      'SELECT * FROM budgets WHERE id = ?',
+      [id]
+    );
+    return result || null;
   },
 };
 
@@ -668,6 +729,39 @@ export const ProcessedSMSDB = {
     await database.runAsync('DELETE FROM processed_sms WHERE userId = ?', [userId]);
   },
 };
+
+/**
+ * Clear all user-specific data from local database
+ * Call this when switching users to prevent data leakage
+ */
+export async function clearUserData(userId?: string): Promise<void> {
+  try {
+    const database = await getDatabase();
+    console.log('🧹 Clearing local database data...');
+    
+    if (userId) {
+      // Clear specific user's data
+      await database.runAsync('DELETE FROM transactions WHERE userId = ?', [userId]);
+      await database.runAsync('DELETE FROM budgets WHERE userId = ?', [userId]);
+      await database.runAsync('DELETE FROM alerts WHERE userId = ?', [userId]);
+      await database.runAsync('DELETE FROM processed_sms WHERE userId = ?', [userId]);
+      console.log('✅ Cleared data for user:', userId);
+    } else {
+      // Clear all user data (when logging out completely)
+      await database.runAsync('DELETE FROM transactions');
+      await database.runAsync('DELETE FROM budgets');
+      await database.runAsync('DELETE FROM alerts');
+      await database.runAsync('DELETE FROM processed_sms');
+      await database.runAsync('DELETE FROM shared_transactions');
+      await database.runAsync('DELETE FROM family_members');
+      await database.runAsync('DELETE FROM families');
+      console.log('✅ Cleared all local data');
+    }
+  } catch (error) {
+    console.error('❌ Error clearing user data:', error);
+    throw error;
+  }
+}
 
 /**
  * Clear all data (for testing/reset)

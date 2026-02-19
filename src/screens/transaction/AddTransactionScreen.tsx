@@ -66,10 +66,46 @@ export function AddTransactionScreen({ navigation }: any) {
       };
 
       console.log('💾 Saving transaction for user:', currentUserId);
-      await TransactionDB.create({ ...transaction, userId: currentUserId });
-      addTransaction(transaction);
+      console.log('💾 Transaction data:', JSON.stringify(transaction, null, 2));
       
+      try {
+        await TransactionDB.create({ ...transaction, userId: currentUserId });
+        console.log('✅ Transaction saved to database');
+      } catch (dbError) {
+        console.error('❌ Database save error:', dbError);
+        console.error('❌ Database error details:', JSON.stringify(dbError, null, 2));
+        throw new Error(`Database error: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+      }
+      
+      addTransaction(transaction);
+      console.log('✅ Transaction added to store');
       console.log('✅ Transaction saved successfully!');
+      
+      // Auto-share transaction with family if user is in a family
+      try {
+        const { FamilyService } = await import('../../features/family/services/familyService');
+        const family = await FamilyService.getFamilyByUserId(currentUserId);
+        
+        if (family) {
+          console.log('👨‍👩‍👧‍👦 Sharing transaction with family:', family.name);
+          await FamilyService.shareTransaction({
+            transactionId: transaction.id,
+            familyId: family.id,
+            sharedByUserId: currentUserId,
+          });
+          console.log('✅ Transaction shared with family');
+        }
+      } catch (error) {
+        console.log('⚠️ Failed to share transaction with family:', error);
+      }
+      
+      // Auto-sync to cloud (non-blocking)
+      if (!currentUserId.startsWith('guest_')) {
+        const { SyncService } = await import('../../services/syncService');
+        SyncService.performSync(currentUserId).catch(err => 
+          console.log('⚠️ Auto-sync failed:', err)
+        );
+      }
       
       // Clear form
       setAmount('');

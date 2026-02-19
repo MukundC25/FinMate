@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "finmate",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -13,7 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.finmate.app"
+      "bundleIdentifier": "com.finmate.app",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["finmate"]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,6 +29,18 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.finmate.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "finmate",
+              "host": "*"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "android.permission.READ_SMS",
         "android.permission.RECEIVE_SMS",

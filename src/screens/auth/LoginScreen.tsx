@@ -4,14 +4,77 @@ import { ScreenWrapper } from '../../components/layout/ScreenWrapper';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Colors, Typography, Spacing, Layout, BorderRadius } from '../../constants/theme';
-import { AuthService } from '../../services/auth';
+import { AuthService } from '../../services/authService';
+import { SyncService } from '../../services/syncService';
+import { UserDB } from '../../services/database';
 import { useStore } from '../../store/useStore';
+import { useFamilyStore } from '../../features/family/store/familyStore';
 
 export function LoginScreen({ navigation }: any) {
-  const { setCurrentUserId } = useStore();
+  const { setCurrentUserId, setUser, resetStore } = useStore();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleSignUp = async () => {
+    if (!name || !email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Clear store state for new user (but keep data in DB)
+      console.log('🔄 Preparing for new user sign up...');
+      resetStore();
+      useFamilyStore.getState().clearFamily();
+      
+      // Sign up with Supabase
+      console.log('📝 Signing up with Supabase:', email);
+      const session = await AuthService.signUpWithEmail(email, password, name);
+      
+      // Create local user record
+      await UserDB.create({
+        id: session.user.id,
+        email: session.user.email || undefined,
+        name: session.user.name,
+        loginMethod: session.user.loginMethod,
+      });
+      
+      // Set current user ID in store
+      setCurrentUserId(session.user.id);
+      
+      // Set user object in store
+      setUser({
+        id: session.user.id,
+        email: session.user.email || undefined,
+        name: session.user.name,
+        monthlyBudget: 0,
+        currency: 'INR',
+      });
+      
+      console.log('👤 Signed up with Supabase:', session.user.id, session.user.email);
+      
+      // Initialize sync service for cloud sync
+      await SyncService.initialize(session.user.id);
+      console.log('🔄 Sync service initialized');
+      
+      // Navigate to main app
+      navigation.replace('MainTabs');
+    } catch (error: any) {
+      console.error('❌ Sign up error:', error);
+      Alert.alert('Sign Up Failed', error.message || 'Failed to create account. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -21,17 +84,48 @@ export function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const session = await AuthService.loginWithEmail(email, password);
-      await AuthService.saveSession(session);
+      // Clear store state for new user (but keep data in DB)
+      console.log('🔄 Preparing for new user login...');
+      resetStore();
+      useFamilyStore.getState().clearFamily();
+      
+      // Sign in with Supabase
+      const session = await AuthService.signInWithEmail(email, password);
+      
+      // Create/update local user record
+      const existingUser = await UserDB.getById(session.user.id);
+      if (!existingUser) {
+        await UserDB.create({
+          id: session.user.id,
+          email: session.user.email || undefined,
+          name: session.user.name,
+          loginMethod: session.user.loginMethod,
+        });
+      }
       
       // Set current user ID in store
-      setCurrentUserId(session.userId);
-      console.log('👤 Logged in as:', session.userId, session.email);
+      setCurrentUserId(session.user.id);
+      
+      // Set user object in store
+      setUser({
+        id: session.user.id,
+        email: session.user.email || undefined,
+        name: session.user.name,
+        monthlyBudget: 0,
+        currency: 'INR',
+      });
+      
+      console.log('👤 Logged in with Supabase:', session.user.id, session.user.email);
+      
+      // Initialize sync service for cloud sync
+      await SyncService.initialize(session.user.id);
+      console.log('🔄 Sync service initialized');
       
       // Navigate to main app
       navigation.replace('MainTabs');
-    } catch (error) {
-      Alert.alert('Login Failed', 'Invalid credentials. Please try again.');
+    } catch (error: any) {
+      console.error('❌ Login error:', error);
+      Alert.alert('Login Failed', error.message || 'Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -40,24 +134,95 @@ export function LoginScreen({ navigation }: any) {
   const handleGuestLogin = async () => {
     setLoading(true);
     try {
-      const session = await AuthService.loginAsGuest();
-      await AuthService.saveSession(session);
+      // Continue as guest (offline-only mode)
+      const session = await AuthService.continueAsGuest();
+      
+      // Create local guest user record
+      await UserDB.create({
+        id: session.user.id,
+        name: session.user.name,
+        loginMethod: 'guest',
+      });
       
       // Set current user ID in store
-      setCurrentUserId(session.userId);
-      console.log('👤 Logged in as guest:', session.userId);
+      setCurrentUserId(session.user.id);
+      console.log('👤 Logged in as guest:', session.user.id);
       
-      // Navigate to main app
+      // Navigate to main app (no sync for guests)
       navigation.replace('MainTabs');
     } catch (error) {
+      console.error('❌ Guest login error:', error);
       Alert.alert('Error', 'Failed to continue as guest');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    Alert.alert('Coming Soon', 'Google Sign-In will be available in the next update!');
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      // Clear store state for new user (but keep data in DB)
+      console.log('🔄 Preparing for Google login...');
+      resetStore();
+      useFamilyStore.getState().clearFamily();
+      
+      console.log('🔐 Initiating Google Sign-In...');
+      const session = await AuthService.signInWithGoogle();
+
+      console.log('✅ Google Sign-In completed');
+      console.log('🆔 Session user ID:', session.user.id);
+      console.log('📧 Session user email:', session.user.email);
+      console.log('👤 Session user name:', session.user.name);
+
+      // Create/update local user record
+      console.log('💾 Creating/updating local user record...');
+      const existingUser = await UserDB.getById(session.user.id);
+      if (!existingUser) {
+        await UserDB.create({
+          id: session.user.id,
+          email: session.user.email || undefined,
+          name: session.user.name,
+          loginMethod: 'google',
+        });
+        console.log('✅ Local user record created');
+      } else {
+        console.log('✅ Local user record already exists');
+      }
+
+      // Set current user ID in store
+      console.log('📝 Setting current user ID in store:', session.user.id);
+      setCurrentUserId(session.user.id);
+      
+      // Set user object in store for profile display
+      setUser({
+        id: session.user.id,
+        email: session.user.email || undefined,
+        name: session.user.name,
+        monthlyBudget: 0,
+        currency: 'INR',
+      });
+      
+      console.log('👤 Logged in with Google:', session.user.id, session.user.email);
+
+      // Initialize sync service for cloud sync
+      console.log('🔄 Initializing sync service for user:', session.user.id);
+      await SyncService.initialize(session.user.id);
+      console.log('✅ Sync service initialized');
+
+      // Navigate to main app
+      console.log('🚀 Navigating to MainTabs...');
+      navigation.replace('MainTabs');
+      console.log('✅ Navigation complete');
+    } catch (error: any) {
+      console.error('❌ Google login error:', error);
+      console.error('❌ Error stack:', error.stack);
+      Alert.alert(
+        'Google Sign-In Failed',
+        error.message || 'Failed to sign in with Google. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,13 +230,24 @@ export function LoginScreen({ navigation }: any) {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.logo}>💰</Text>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+        <Text style={styles.title}>{isSignUp ? 'Create Account' : 'Welcome Back'}</Text>
+        <Text style={styles.subtitle}>{isSignUp ? 'Sign up to get started' : 'Sign in to continue'}</Text>
       </View>
 
-      {/* Login Form */}
+      {/* Login/Signup Form */}
       <View style={styles.content}>
         <Card style={styles.formCard}>
+          {isSignUp && (
+            <TextInput
+              style={styles.input}
+              placeholder="Name"
+              placeholderTextColor={Colors.textSecondary}
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+          )}
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -91,15 +267,17 @@ export function LoginScreen({ navigation }: any) {
             secureTextEntry
             autoCapitalize="none"
           />
-          <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
+          {!isSignUp && (
+            <TouchableOpacity style={styles.forgotPassword}>
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
+          )}
         </Card>
 
-        {/* Login Button */}
+        {/* Login/Signup Button */}
         <Button
-          title={loading ? 'Signing In...' : 'Sign In'}
-          onPress={handleLogin}
+          title={loading ? (isSignUp ? 'Creating Account...' : 'Signing In...') : (isSignUp ? 'Sign Up' : 'Sign In')}
+          onPress={isSignUp ? handleSignUp : handleLogin}
           disabled={loading}
         />
 
@@ -129,11 +307,15 @@ export function LoginScreen({ navigation }: any) {
           <Text style={styles.guestButtonText}>Continue as Guest</Text>
         </TouchableOpacity>
 
-        {/* Sign Up Link */}
+        {/* Toggle Sign Up/Login Link */}
         <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => Alert.alert('Coming Soon', 'Sign up will be available soon!')}>
-            <Text style={styles.signupLink}>Sign Up</Text>
+          <Text style={styles.signupText}>
+            {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+          </Text>
+          <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
+            <Text style={styles.signupLink}>
+              {isSignUp ? 'Sign In' : 'Sign Up'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

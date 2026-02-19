@@ -49,6 +49,9 @@ interface AppState {
   
   selectedTimeframe: 'week' | 'month' | 'year';
   setSelectedTimeframe: (timeframe: 'week' | 'month' | 'year') => void;
+
+  // Reset all store data
+  resetStore: () => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -131,4 +134,20 @@ export const useStore = create<AppState>((set) => ({
   
   selectedTimeframe: 'month',
   setSelectedTimeframe: (timeframe) => set({ selectedTimeframe: timeframe }),
+
+  // Reset all store data (call when switching users)
+  resetStore: () => set({
+    user: null,
+    currentUserId: null,
+    transactions: [],
+    budgets: [],
+    alerts: [],
+    smsPermissionStatus: null,
+    smsProcessingEnabled: false,
+    lastSMSProcessingTime: null,
+    autoDetectedTransactionCount: 0,
+    isLoading: false,
+    selectedMonth: new Date().toISOString().slice(0, 7),
+    selectedTimeframe: 'month',
+  }),
 }));

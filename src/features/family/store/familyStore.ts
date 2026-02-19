@@ -44,15 +44,28 @@ export const useFamilyStore = create<FamilyState>()(
 
       loadFamily: async (userId: string) => {
         try {
+          console.log('👨‍👩‍👧‍👦 Loading family for user:', userId);
           set({ isLoading: true, error: null });
           const family = await FamilyService.getFamilyByUserId(userId);
+          console.log('👨‍👩‍👧‍👦 Family loaded:', family ? `${family.name} (${family.members.length} members)` : 'No family found');
+          
+          // Only update currentFamily if we got a result (even if null)
+          // This ensures consistent state
           set({ currentFamily: family, isLoading: false });
           
           if (family) {
-            await get().loadSharedTransactions();
+            // Load shared transactions in the background
+            // Don't await to avoid blocking the UI
+            get().loadSharedTransactions().catch(err => {
+              console.log('⚠️ Failed to load shared transactions:', err);
+            });
+          } else {
+            // Clear shared transactions if no family
+            set({ sharedTransactions: [] });
           }
         } catch (error) {
-          console.error('Error loading family:', error);
+          console.error('❌ Error loading family:', error);
+          // Don't clear currentFamily on error - keep existing state
           set({ 
             error: error instanceof Error ? error.message : 'Failed to load family',
             isLoading: false 
@@ -167,13 +180,16 @@ export const useFamilyStore = create<FamilyState>()(
             return;
           }
 
+          console.log('📊 Loading shared transactions for family:', currentFamily.name);
           const transactions = await FamilyService.getSharedTransactions(currentFamily.id);
+          console.log('📊 Loaded', transactions.length, 'shared transactions');
           set({ sharedTransactions: transactions });
         } catch (error) {
-          console.error('Error loading shared transactions:', error);
-          set({ 
-            error: error instanceof Error ? error.message : 'Failed to load shared transactions'
-          });
+          console.error('❌ Error loading shared transactions:', error);
+          // Set empty array instead of keeping old data
+          set({ sharedTransactions: [] });
+          // Don't set error state - just log it
+          // This prevents the family dashboard from breaking
         }
       },
 
@@ -210,7 +226,10 @@ export const useFamilyStore = create<FamilyState>()(
 
           set({ isLoading: true, error: null });
           await FamilyService.removeMember(currentFamily.id, userId, requestingUserId);
-          await get().refreshFamily();
+          
+          // Reload family data using the requesting user's ID
+          console.log('🔄 Reloading family after member removal');
+          await get().loadFamily(requestingUserId);
           set({ isLoading: false });
         } catch (error) {
           console.error('Error removing member:', error);
@@ -243,12 +262,36 @@ export const useFamilyStore = create<FamilyState>()(
       },
 
       refreshFamily: async () => {
-        const { currentFamily } = get();
-        if (currentFamily) {
-          const members = currentFamily.members;
-          if (members.length > 0) {
-            await get().loadFamily(members[0].userId);
+        try {
+          const { currentFamily } = get();
+          if (!currentFamily) {
+            console.log('⚠️ No current family to refresh');
+            return;
           }
+
+          // Find the current user in the members list
+          const currentUserId = currentFamily.members.find(m => m.userId)?.userId;
+          if (!currentUserId) {
+            console.log('⚠️ No valid user ID found in family members');
+            return;
+          }
+
+          console.log('🔄 Refreshing family data for user:', currentUserId);
+          const updatedFamily = await FamilyService.getFamilyByUserId(currentUserId);
+          
+          // Only update if family still exists
+          if (updatedFamily) {
+            console.log('✅ Family refreshed:', updatedFamily.name);
+            set({ currentFamily: updatedFamily });
+            await get().loadSharedTransactions();
+          } else {
+            console.log('⚠️ Family no longer exists after refresh');
+            // Keep the current family state instead of clearing it
+            // This prevents the "No Family Yet" screen from showing
+          }
+        } catch (error) {
+          console.error('❌ Error refreshing family:', error);
+          // Don't clear currentFamily on error - keep the existing state
         }
       },
 

@@ -12,7 +12,7 @@ import { Icon, IconName } from '../../components/ui/Icon';
 import { useFamilyStore } from '../../features/family/store/familyStore';
 
 export function ProfileScreen({ navigation }: any) {
-  const { transactions, budgets, setTransactions, setBudgets, setCurrentUserId, currentUserId } = useStore();
+  const { transactions, budgets, setTransactions, setBudgets, setCurrentUserId, currentUserId, user: storeUser } = useStore();
   const { clearFamily } = useFamilyStore();
   const { formatCurrency, selectedCurrency } = useCurrencyFormat();
   const [user, setUser] = useState({
@@ -23,23 +23,46 @@ export function ProfileScreen({ navigation }: any) {
   // Load user data on mount and when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
+      console.log('👤 ProfileScreen - currentUserId:', currentUserId);
+      console.log('👤 ProfileScreen - storeUser:', storeUser);
       loadUserData();
-    }, [currentUserId])
+    }, [currentUserId, storeUser])
   );
   
   const loadUserData = async () => {
-    if (!currentUserId) return;
+    console.log('👤 Loading user data for ID:', currentUserId);
+    if (!currentUserId) {
+      console.log('⚠️ No currentUserId set');
+      return;
+    }
     
     try {
+      // First check if we have user data in the store (set during login)
+      if (storeUser && storeUser.id === currentUserId) {
+        console.log('✅ Using store user data:', storeUser.name, storeUser.email);
+        setUser({
+          name: storeUser.name || 'User',
+          email: storeUser.email || 'user@example.com',
+        });
+        return;
+      }
+      
+      // Fall back to loading from local database
+      console.log('💾 Loading from UserDB...');
       const userData = await UserDB.getById(currentUserId);
+      console.log('💾 UserDB result:', userData);
+      
       if (userData) {
+        console.log('✅ Setting user from UserDB:', userData.name, userData.email);
         setUser({
           name: userData.name || 'User',
           email: userData.email || 'user@example.com',
         });
+      } else {
+        console.log('⚠️ No user data found in UserDB for ID:', currentUserId);
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error('❌ Error loading user data:', error);
     }
   };
   
@@ -85,6 +108,7 @@ export function ProfileScreen({ navigation }: any) {
     {
       section: 'Preferences',
       items: [
+        { icon: 'settings', label: 'Settings', onPress: () => navigation.navigate('Settings') },
         { icon: 'bell', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
         { icon: 'filter', label: 'Categories', onPress: () => Alert.alert('Coming Soon', 'Category management will be available soon!') },
         { icon: 'rupee', label: 'Currency', value: `${selectedCurrency.code} (${selectedCurrency.symbol})`, onPress: () => navigation.navigate('Currency') },

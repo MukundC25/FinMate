@@ -65,6 +65,14 @@ export function AddBudgetScreen({ navigation }: any) {
       addBudget(budget);
       
       console.log('✅ Budget created successfully!');
+      
+      // Auto-sync to cloud (non-blocking)
+      if (!currentUserId.startsWith('guest_')) {
+        const { SyncService } = await import('../../services/syncService');
+        SyncService.performSync(currentUserId).catch(err => 
+          console.log('⚠️ Auto-sync failed:', err)
+        );
+      }
       Alert.alert('Success', 'Budget created successfully!', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
